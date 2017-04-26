@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.engine.indexer.TestParser" tests="1" skipped="0" failures="0" errors="0" timestamp="2017-04-26T00:35:03" hostname="hawk" time="0.001">
+  <properties/>
+  <testcase name="testShouldWork" classname="com.engine.indexer.TestParser" time="0.001"/>
+  <system-out><![CDATA[10]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
