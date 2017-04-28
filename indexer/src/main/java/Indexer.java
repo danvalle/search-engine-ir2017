@@ -1,15 +1,14 @@
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 public class Indexer {
     private HashMap<String, Integer> vocabulary;
     private File temp;
 
-    private String html;
+    private StringBuilder html;
     private String url;
 
     Indexer() throws IOException {
@@ -18,11 +17,21 @@ public class Indexer {
     }
 
 
-    public void getNextPage() {
-        url = "http://www.ohyeah.com.br";
-        html = "<html><head><title>First parse</title></head>"
-                + "<body><p>Parsed HTML into a doc. This doc is really important because" +
-                " it is going to be a indexed doc.</p></body></html>";
+    public void getNextPage(Scanner scan) {
+        if (scan.hasNext()) {
+            url = scan.next();
+            scan.next();
+        }
+
+        String nextWord;
+        html = new StringBuilder();
+        while (scan.hasNext()) {
+            nextWord = scan.next();
+            if (nextWord.contains("|||")) {
+                break;
+            }
+            html.append(nextWord);
+        }
     }
 
     public void updateVocabulary(String term) {
@@ -33,13 +42,25 @@ public class Indexer {
 
 
     public void buildIndex() {
-//        OPEN FILES
         SortedMap<Integer, ArrayList<Tuple>> entryList = new TreeMap<>();
 
+//        Open file with html
+        File file;
+        Scanner scan = null;
+        try {
+            file = new File("/home/dan/UFMG/RI/data_backup/html_first/html_0.txt");
+            scan = new Scanner(new BufferedReader(new FileReader(file)));
+            scan.next();
 
-        getNextPage();
-        Document doc = Jsoup.parse(html);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
 
+//        Get next html and url and parse them
+        getNextPage(scan);
+        Document doc = Jsoup.parse(html.toString());
+
+//        For each term, do the trick
         String processedTolken;
         int position = 0;
         for (String tolken : doc.body().text().split(" ")) {
@@ -65,7 +86,7 @@ public class Indexer {
         for (SortedMap.Entry<Integer, ArrayList<Tuple>> entry : entryList.entrySet()) {
             System.out.println(entry.getKey() + " =>  " + entry.getValue());
             for (Tuple ea : entry.getValue()) {
-                System.out.println(String.valueOf(ea.d) + ' ' + String.valueOf(ea.p));
+                System.out.println('(' + String.valueOf(ea.d) + " , " + String.valueOf(ea.p) + ')');
             }
         }
 
