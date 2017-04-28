@@ -11,7 +11,11 @@
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="indexer" target="1.5" />
+      <module name="indexer_main" target="1.8" />
+      <module name="indexer_test" target="1.8" />
       <module name="search-engine-ir2017" target="1.5" />
+      <module name="search_main" target="1.8" />
+      <module name="search_test" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>
