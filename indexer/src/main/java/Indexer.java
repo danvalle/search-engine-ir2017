@@ -9,7 +9,10 @@ public class Indexer {
     private File temp;
 
     private StringBuilder html;
-    private String url;
+    private StringBuilder url;
+
+    byte[] buff = new byte[1024];
+
 
     Indexer() throws IOException {
         vocabulary = new HashMap<>();
@@ -17,21 +20,55 @@ public class Indexer {
     }
 
 
-    public void getNextPage(Scanner scan) {
-        if (scan.hasNext()) {
-            url = scan.next();
-            scan.next();
+    public void getNextPage(InputStream in) {
+        int bytesRead;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            bytesRead = in.read(buff);
+            out.write(buff, 0, bytesRead);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
-        String nextWord;
-        html = new StringBuilder();
-        while (scan.hasNext()) {
-            nextWord = scan.next();
-            if (nextWord.contains("|||")) {
+        byte[] data = out.toByteArray();
+        ByteArrayInputStream bin = new ByteArrayInputStream(data);
+
+        byte[] bars = new byte[3];
+        bin.read(bars,0,3);
+        int nextByte;
+        url = new StringBuilder();
+        while ((nextByte = bin.read()) != -1) {
+            if ((char)nextByte == '|') {
                 break;
             }
-            html.append(nextWord);
+            if ((char)nextByte != ' ') {
+                url.append((char) nextByte);
+            }
         }
+
+        html = new StringBuilder();
+        while ((nextByte = bin.read()) != -1) {
+            if ((char)nextByte == '|') {
+                break;
+            }
+            html.append((char) nextByte);
+        }
+
+        nextByte = 0;
+//        if (scan.hasNext()) {
+//            url = scan.next();
+//            scan.next();
+//        }
+//
+//        String nextWord;
+//        html = new StringBuilder();
+//        while (scan.hasNext()) {
+//            nextWord = scan.next();
+//            if (nextWord.contains("|||")) {
+//                break;
+//            }
+//            html.append(nextWord);
+//        }
     }
 
     public void updateVocabulary(String term) {
@@ -45,19 +82,18 @@ public class Indexer {
         SortedMap<Integer, ArrayList<Tuple>> entryList = new TreeMap<>();
 
 //        Open file with html
-        File file;
-        Scanner scan = null;
+        InputStream in = null;
         try {
-            file = new File("/home/dan/UFMG/RI/data_backup/html_first/html_0.txt");
-            scan = new Scanner(new BufferedReader(new FileReader(file)));
-            scan.next();
 
+            File file = new File("/home/dan/UFMG/RI/data_backup/html_first/html_0.txt");
+            in = new FileInputStream(file);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
 
+
 //        Get next html and url and parse them
-        getNextPage(scan);
+        getNextPage(in);
         Document doc = Jsoup.parse(html.toString());
 
 //        For each term, do the trick
