@@ -1,8 +1,15 @@
 import org.jsoup.Jsoup;
+import org.jsoup.helper.StringUtil;
 import org.jsoup.nodes.Document;
 
 import java.io.*;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.Normalizer;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Indexer {
     private HashMap<String, Integer> vocabulary;
@@ -10,65 +17,61 @@ public class Indexer {
 
     private StringBuilder html;
     private StringBuilder url;
+    private HashSet<String> stopWords;
 
-    byte[] buff = new byte[1024];
+    char[] buffer = new char[5000];
+    String[] pages = new String[1];
+    int bufferIndex = 0;
 
 
     Indexer() throws IOException {
         vocabulary = new HashMap<>();
         temp = File.createTempFile("tempfile", ".tmp");
+
+        getStopWords();
     }
 
 
-    public void getNextPage(InputStream in) {
-        int bytesRead;
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            bytesRead = in.read(buff);
-            out.write(buff, 0, bytesRead);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        byte[] data = out.toByteArray();
-        ByteArrayInputStream bin = new ByteArrayInputStream(data);
-
-        byte[] bars = new byte[3];
-        bin.read(bars,0,3);
-        int nextByte;
+//  TODO -- HANDLE EOF TO HTML
+    public void getNextPage(BufferedReader reader) {
         url = new StringBuilder();
-        while ((nextByte = bin.read()) != -1) {
-            if ((char)nextByte == '|') {
-                break;
-            }
-            if ((char)nextByte != ' ') {
-                url.append((char) nextByte);
-            }
-        }
-
         html = new StringBuilder();
-        while ((nextByte = bin.read()) != -1) {
-            if ((char)nextByte == '|') {
-                break;
-            }
-            html.append((char) nextByte);
-        }
+        boolean urlFound = false;
+        boolean htmlFound = false;
 
-        nextByte = 0;
-//        if (scan.hasNext()) {
-//            url = scan.next();
-//            scan.next();
-//        }
-//
-//        String nextWord;
-//        html = new StringBuilder();
-//        while (scan.hasNext()) {
-//            nextWord = scan.next();
-//            if (nextWord.contains("|||")) {
-//                break;
-//            }
-//            html.append(nextWord);
-//        }
+        while (!urlFound || !htmlFound) {
+            if (bufferIndex+1 == pages.length) {
+                bufferIndex = 0;
+
+                try {
+                    reader.read(buffer, 0, buffer.length);
+                    String bufferString = new String(buffer);
+                    pages = bufferString.split("\\|");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            while (pages[bufferIndex].isEmpty()) {
+                bufferIndex++;
+            }
+
+            if (!urlFound) {
+                url.append(pages[bufferIndex].replaceAll(" ", ""));
+                if (pages.length != bufferIndex+1) {
+                    urlFound = true;
+                    bufferIndex++;
+                }
+            }
+
+            if (urlFound) {
+                html.append(pages[bufferIndex]);
+                if (pages.length != bufferIndex+1) {
+                    htmlFound = true;
+                    bufferIndex++;
+                }
+            }
+        }
     }
 
     public void updateVocabulary(String term) {
@@ -77,52 +80,102 @@ public class Indexer {
         }
     }
 
-
-    public void buildIndex() {
-        SortedMap<Integer, ArrayList<Tuple>> entryList = new TreeMap<>();
-
-//        Open file with html
-        InputStream in = null;
+    public void getStopWords() {
         try {
+            Path stopWordsFile = Paths.get(getClass().getResource("StopWords.txt").toURI());
+            stopWords = new HashSet<>();
+            stopWords.addAll( Files.readAllLines(stopWordsFile) );
 
-            File file = new File("/home/dan/UFMG/RI/data_backup/html_first/html_0.txt");
-            in = new FileInputStream(file);
-        } catch (FileNotFoundException e) {
+        } catch (URISyntaxException | IOException e) {
             e.printStackTrace();
         }
 
+    }
+
+
+    public void buildIndex() {
+
+//        Open file with html
+        File file;
+        FileInputStream fis;
+        String encoding ="ISO-8859-1";
+        BufferedReader reader = null;
+        try {
+            file = new File("/home/dan/UFMG/RI/small_collection/html_0");
+            fis = new FileInputStream(file);
+            reader = new BufferedReader(new InputStreamReader(fis, encoding));
+        } catch (FileNotFoundException | UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+//        Store tuples and frequencies
+        SortedMap<Integer, ArrayList<Tuple>> entryList = new TreeMap<>();
+        Map<Integer, Map<Integer, Integer>> termFrequency = new HashMap<>();
+
+
+        for (int docNumber = 0; docNumber < 10; docNumber++) {
 
 //        Get next html and url and parse them
-        getNextPage(in);
-        Document doc = Jsoup.parse(html.toString());
+            getNextPage(reader);
+            System.out.println(url.toString());
+            Document doc = Jsoup.parse(html.toString());
 
 //        For each term, do the trick
-        String processedTolken;
-        int position = 0;
-        for (String tolken : doc.body().text().split(" ")) {
-            processedTolken = tolken.replaceAll("[^A-Za-z]*", "").toLowerCase();
-            updateVocabulary(processedTolken);
+            String processedTolken;
+            int position = 0;
+            for (String tolken : doc.body().text().split(" ")) {
+                processedTolken = Normalizer.normalize(tolken, Normalizer.Form.NFD);
+                processedTolken = processedTolken.replaceAll("[^A-Za-z0-9]*", "").toLowerCase();
+                if (StringUtil.isNumeric(processedTolken)) {
+                    processedTolken = "number";
+                }
+
+                if (!stopWords.contains(processedTolken) && !processedTolken.isEmpty()) {
+                    updateVocabulary(processedTolken);
+
+                    Tuple newTuple = new Tuple(docNumber, position);
+                    int tolkenNumber = vocabulary.get(processedTolken);
+                    if (!entryList.containsKey(tolkenNumber)) {
+                        entryList.put(tolkenNumber, new ArrayList<>());
+                        termFrequency.put(tolkenNumber, new HashMap<>());
+                    }
+                    entryList.get(tolkenNumber).add(newTuple);
+
+                    if (!termFrequency.get(tolkenNumber).containsKey(docNumber)) {
+                        termFrequency.get(tolkenNumber).put(docNumber, 1);
+                    } else {
+                        int currentFrequency = termFrequency.get(tolkenNumber).get(docNumber);
+                        termFrequency.get(tolkenNumber).put(docNumber, currentFrequency+1);
+                    }
 
 
-            Tuple newTuple = new Tuple(0, position);
-            if (!entryList.containsKey(vocabulary.get(processedTolken))) {
-                entryList.put(vocabulary.get(processedTolken), new ArrayList<>());
+                    position++;
+                }
             }
-            entryList.get(vocabulary.get(processedTolken)).add(newTuple);
 
 
-            position ++;
+
         }
 
 
 
 
-
+//        PRINT SANITY
         System.out.println(vocabulary);
         for (SortedMap.Entry<Integer, ArrayList<Tuple>> entry : entryList.entrySet()) {
-            System.out.println(entry.getKey() + " =>  " + entry.getValue());
+            System.out.println(entry.getKey() + " =>  " + vocabulary.entrySet()
+                                                        .stream()
+                                                        .filter(any -> Objects.equals(any.getValue(), entry.getKey()))
+                                                        .map(Map.Entry::getKey)
+                                                        .collect(Collectors.toSet()));
+            int prevDoc = -1;
+            int fdt = -1;
             for (Tuple ea : entry.getValue()) {
-                System.out.println('(' + String.valueOf(ea.d) + " , " + String.valueOf(ea.p) + ')');
+                if (ea.d != prevDoc) {
+                    fdt = termFrequency.get(entry.getKey()).get(ea.d);
+                    prevDoc = ea.d;
+                }
+                System.out.println('(' + String.valueOf(ea.d) + " , " + fdt + ", " + String.valueOf(ea.p) + ')');
             }
         }
 
