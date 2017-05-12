@@ -9,42 +9,77 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.Normalizer;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class Indexer {
     private HashMap<String, Integer> vocabulary;
-    private File temp;
+    private ArrayList<File> tempFiles;
+
+    private File[] listofFiles;
+    private int fileNum = 0;
 
     private StringBuilder html;
     private StringBuilder url;
     private HashSet<String> stopWords;
 
-    char[] buffer = new char[5000];
-    String[] pages = new String[1];
-    int bufferIndex = 0;
+    private BufferedReader reader;
+    private char[] buffer = new char[5000];
+    private String[] pages = new String[1];
+    private int bufferIndex = 0;
 
+    private int docNumber = 0;
 
-    Indexer() throws IOException {
+    Indexer(String dataPath) throws IOException {
+        File dataFolder = new File(dataPath);
+        listofFiles = dataFolder.listFiles();
+        reader = getNextFile();
+
         vocabulary = new HashMap<>();
-        temp = File.createTempFile("tempfile", ".tmp");
-
+        tempFiles = new ArrayList<>();
         getStopWords();
     }
 
 
-//  TODO -- HANDLE EOF TO HTML
-    public void getNextPage(BufferedReader reader) {
+    public BufferedReader getNextFile() {
+//        Open file with html
+        BufferedReader reader = null;
+        try {
+            FileInputStream fis = new FileInputStream(listofFiles[fileNum]);
+            reader = new BufferedReader(new InputStreamReader(fis, "ISO-8859-1"));
+        } catch (FileNotFoundException | UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        fileNum++;
+        return reader;
+    }
+
+
+    public int getNextPage() {
+//        TODO -- SOMETHING WEIRD IS HEPPENING HERE
+        if (pages.length > 1) {
+            if (pages[1].contains("http://femeiacrestina.blogspot.com/")) {
+                System.out.println("OH, BOY");
+            }
+        }
+
         url = new StringBuilder();
         html = new StringBuilder();
         boolean urlFound = false;
         boolean htmlFound = false;
+        int endOfDocumentsFile = 0;
 
         while (!urlFound || !htmlFound) {
             if (bufferIndex+1 == pages.length) {
                 bufferIndex = 0;
 
                 try {
-                    reader.read(buffer, 0, buffer.length);
+                    endOfDocumentsFile = reader.read(buffer, 0, buffer.length);
+                    if ((endOfDocumentsFile == -1) && (fileNum < listofFiles.length)) {
+                        reader = getNextFile();
+                        url = new StringBuilder();
+                        html = new StringBuilder();
+                        System.out.println("OK");
+                        endOfDocumentsFile = reader.read(buffer, 0, buffer.length);
+                    }
                     String bufferString = new String(buffer);
                     pages = bufferString.split("\\|");
                 } catch (IOException e) {
@@ -72,13 +107,16 @@ public class Indexer {
                 }
             }
         }
+        return endOfDocumentsFile;
     }
+
 
     public void updateVocabulary(String term) {
         if (!vocabulary.containsKey(term)) {
             vocabulary.put(term, vocabulary.size());
         }
     }
+
 
     public void getStopWords() {
         try {
@@ -93,30 +131,57 @@ public class Indexer {
     }
 
 
-    public void buildIndex() {
-
-//        Open file with html
-        File file;
-        FileInputStream fis;
-        String encoding ="ISO-8859-1";
-        BufferedReader reader = null;
+    public void closeDocumentsFile(BufferedReader reader) {
         try {
-            file = new File("/home/dan/UFMG/RI/small_collection/html_0");
-            fis = new FileInputStream(file);
-            reader = new BufferedReader(new InputStreamReader(fis, encoding));
-        } catch (FileNotFoundException | UnsupportedEncodingException e) {
+            reader.close();
+        } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+
+    public void writeRunIntoTempFile(SortedMap<Integer, ArrayList<Tuple>> entryList,
+                                     Map<Integer, Map<Integer, Integer>> termFrequency) {
+
+//        Write run into temporary file
+        try {
+            File tempFile = File.createTempFile("tempfile", ".tmp");
+
+            BufferedWriter run = new BufferedWriter(new FileWriter(tempFile));
+            for (SortedMap.Entry<Integer, ArrayList<Tuple>> entry : entryList.entrySet()) {
+                int prevDoc = -1;
+                int fdt = -1;
+                for (Tuple ea : entry.getValue()) {
+                    if (ea.d != prevDoc) {
+                        fdt = termFrequency.get(entry.getKey()).get(ea.d);
+                        prevDoc = ea.d;
+                    }
+                    run.write(entry.getKey().toString() + ' ' + String.valueOf(ea.d) +
+                            ' ' + fdt + ' ' + String.valueOf(ea.p) + '\n');
+                }
+            }
+            run.close();
+
+            tempFiles.add(tempFile);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+
+    public void buildIndex() {
 
 //        Store tuples and frequencies
         SortedMap<Integer, ArrayList<Tuple>> entryList = new TreeMap<>();
         Map<Integer, Map<Integer, Integer>> termFrequency = new HashMap<>();
+        int entriesNumber = 0;
 
-
-        for (int docNumber = 0; docNumber < 10; docNumber++) {
 
 //        Get next html and url and parse them
-            getNextPage(reader);
+        while (getNextPage() != -1) {
+
             System.out.println(url.toString());
             Document doc = Jsoup.parse(html.toString());
 
@@ -147,48 +212,28 @@ public class Indexer {
                         int currentFrequency = termFrequency.get(tolkenNumber).get(docNumber);
                         termFrequency.get(tolkenNumber).put(docNumber, currentFrequency+1);
                     }
-
-
                     position++;
+
+//                    Keep track of memory by looking the number of entries
+                    entriesNumber++;
+                    if (entriesNumber > 30000) {
+                        writeRunIntoTempFile(entryList, termFrequency);
+//                        Reset entries for new run
+                        entryList = new TreeMap<>();
+                        termFrequency = new HashMap<>();
+                        entriesNumber = 0;
+                    }
                 }
             }
-
-
+            docNumber++;
 
         }
 
 
-
-
-//        PRINT SANITY
-        System.out.println(vocabulary);
-        for (SortedMap.Entry<Integer, ArrayList<Tuple>> entry : entryList.entrySet()) {
-            System.out.println(entry.getKey() + " =>  " + vocabulary.entrySet()
-                                                        .stream()
-                                                        .filter(any -> Objects.equals(any.getValue(), entry.getKey()))
-                                                        .map(Map.Entry::getKey)
-                                                        .collect(Collectors.toSet()));
-            int prevDoc = -1;
-            int fdt = -1;
-            for (Tuple ea : entry.getValue()) {
-                if (ea.d != prevDoc) {
-                    fdt = termFrequency.get(entry.getKey()).get(ea.d);
-                    prevDoc = ea.d;
-                }
-                System.out.println('(' + String.valueOf(ea.d) + " , " + fdt + ", " + String.valueOf(ea.p) + ')');
-            }
+        if (entriesNumber > 0) {
+            writeRunIntoTempFile(entryList, termFrequency);
         }
-
-
-
-//        try {
-//            BufferedWriter bw = new BufferedWriter(new FileWriter(temp));
-//            bw.write("<1, 2, 3>");
-//            bw.close();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-
+        closeDocumentsFile(reader);
 
 
     }

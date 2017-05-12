@@ -4,7 +4,7 @@ public class TestParser {
 
     @Test
     public void testShouldWork() throws Exception {
-        Indexer indexer = new Indexer();
+        Indexer indexer = new Indexer("/home/dan/UFMG/RI/small_collection/");
         indexer.buildIndex();
     }
 
