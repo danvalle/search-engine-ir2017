@@ -23,7 +23,7 @@ public class Indexer {
 
     private BufferedReader reader;
     private char[] buffer = new char[5000];
-    private String[] pages = new String[1];
+    private String[] pages = new String[0];
     private int bufferIndex = 0;
 
     private int docNumber = 0;
@@ -54,13 +54,6 @@ public class Indexer {
 
 
     public int getNextPage() {
-//        TODO -- SOMETHING WEIRD IS HEPPENING HERE
-        if (pages.length > 1) {
-            if (pages[1].contains("http://femeiacrestina.blogspot.com/")) {
-                System.out.println("OH, BOY");
-            }
-        }
-
         url = new StringBuilder();
         html = new StringBuilder();
         boolean urlFound = false;
@@ -68,7 +61,7 @@ public class Indexer {
         int endOfDocumentsFile = 0;
 
         while (!urlFound || !htmlFound) {
-            if (bufferIndex+1 == pages.length) {
+            if (bufferIndex == pages.length) {
                 bufferIndex = 0;
 
                 try {
@@ -77,33 +70,41 @@ public class Indexer {
                         reader = getNextFile();
                         url = new StringBuilder();
                         html = new StringBuilder();
-                        System.out.println("OK");
+                        System.out.println("Changing file...");
                         endOfDocumentsFile = reader.read(buffer, 0, buffer.length);
                     }
                     String bufferString = new String(buffer);
-                    pages = bufferString.split("\\|");
+                    pages = bufferString.replaceAll("\\|", "\\|\\|").split("\\|");
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
 
-            while (pages[bufferIndex].isEmpty()) {
-                bufferIndex++;
+//            Next buffer and first letter is the html_url division
+            if  (pages[bufferIndex].isEmpty() && urlFound) {
+                htmlFound = true;
             }
 
             if (!urlFound) {
-                url.append(pages[bufferIndex].replaceAll(" ", ""));
-                if (pages.length != bufferIndex+1) {
-                    urlFound = true;
+                while (pages[bufferIndex].isEmpty()) {
                     bufferIndex++;
+                }
+                url.append(pages[bufferIndex].replaceAll(" ", ""));
+                bufferIndex++;
+                if (bufferIndex!=pages.length && pages[bufferIndex].isEmpty()) {
+                    urlFound = true;
                 }
             }
 
-            if (urlFound) {
-                html.append(pages[bufferIndex]);
-                if (pages.length != bufferIndex+1) {
-                    htmlFound = true;
+            if (urlFound && bufferIndex!=pages.length+1 && !htmlFound) {
+                while (pages[bufferIndex].isEmpty()) {
                     bufferIndex++;
+                }
+                html.append(pages[bufferIndex]);
+                bufferIndex++;
+                if (bufferIndex!=pages.length && pages[bufferIndex].isEmpty()) {
+                    htmlFound = true;
                 }
             }
         }
@@ -216,7 +217,7 @@ public class Indexer {
 
 //                    Keep track of memory by looking the number of entries
                     entriesNumber++;
-                    if (entriesNumber > 30000) {
+                    if (entriesNumber >= 50000) {
                         writeRunIntoTempFile(entryList, termFrequency);
 //                        Reset entries for new run
                         entryList = new TreeMap<>();
@@ -228,7 +229,6 @@ public class Indexer {
             docNumber++;
 
         }
-
 
         if (entriesNumber > 0) {
             writeRunIntoTempFile(entryList, termFrequency);
