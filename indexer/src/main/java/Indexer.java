@@ -11,10 +11,10 @@ import java.text.Normalizer;
 import java.util.*;
 
 public class Indexer {
-    private HashMap<String, Integer> vocabulary;
+    public HashMap<String, Integer> vocabulary;
     private ArrayList<File> tempFiles;
 
-    private File[] listofFiles;
+    private File[] listOfFiles;
     private int fileNum = 0;
 
     private StringBuilder html;
@@ -30,7 +30,7 @@ public class Indexer {
 
     Indexer(String dataPath) throws IOException {
         File dataFolder = new File(dataPath);
-        listofFiles = dataFolder.listFiles();
+        listOfFiles = dataFolder.listFiles();
         reader = getNextFile();
 
         vocabulary = new HashMap<>();
@@ -43,7 +43,7 @@ public class Indexer {
 //        Open file with html
         BufferedReader reader = null;
         try {
-            FileInputStream fis = new FileInputStream(listofFiles[fileNum]);
+            FileInputStream fis = new FileInputStream(listOfFiles[fileNum]);
             reader = new BufferedReader(new InputStreamReader(fis, "ISO-8859-1"));
         } catch (FileNotFoundException | UnsupportedEncodingException e) {
             e.printStackTrace();
@@ -66,7 +66,7 @@ public class Indexer {
 
                 try {
                     endOfDocumentsFile = reader.read(buffer, 0, buffer.length);
-                    if ((endOfDocumentsFile == -1) && (fileNum < listofFiles.length)) {
+                    if ((endOfDocumentsFile == -1) && (fileNum < listOfFiles.length)) {
                         reader = getNextFile();
                         url = new StringBuilder();
                         html = new StringBuilder();
@@ -172,7 +172,7 @@ public class Indexer {
     }
 
 
-    public void buildIndex() {
+    public  ArrayList<File> buildIndex() {
 
 //        Store tuples and frequencies
         SortedMap<Integer, ArrayList<Tuple>> entryList = new TreeMap<>();
@@ -183,7 +183,7 @@ public class Indexer {
 //        Get next html and url and parse them
         while (getNextPage() != -1) {
 
-            System.out.println(url.toString());
+//            System.out.println(url.toString());
             Document doc = Jsoup.parse(html.toString());
 
 //        For each term, do the trick
@@ -217,27 +217,29 @@ public class Indexer {
 
 //                    Keep track of memory by looking the number of entries
                     entriesNumber++;
-                    if (entriesNumber >= 50000) {
-                        writeRunIntoTempFile(entryList, termFrequency);
-//                        Reset entries for new run
-                        entryList = new TreeMap<>();
-                        termFrequency = new HashMap<>();
-                        entriesNumber = 0;
-                    }
+
                 }
             }
             docNumber++;
 
+            if (entriesNumber >= 50000) {
+                writeRunIntoTempFile(entryList, termFrequency);
+//                        Reset entries for new run
+                entryList = new TreeMap<>();
+                termFrequency = new HashMap<>();
+                entriesNumber = 0;
+            }
         }
 
+//        Last entries that did not complete max memory defined
         if (entriesNumber > 0) {
             writeRunIntoTempFile(entryList, termFrequency);
         }
         closeDocumentsFile(reader);
 
 
+        return  tempFiles;
     }
-
 }
 
 
