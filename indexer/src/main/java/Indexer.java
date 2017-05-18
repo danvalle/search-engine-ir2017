@@ -12,6 +12,7 @@ import java.util.*;
 
 public class Indexer {
     public HashMap<String, Integer> vocabulary;
+    public HashMap<Integer, String> document;
     private ArrayList<File> tempFiles;
 
     private File[] listOfFiles;
@@ -34,12 +35,13 @@ public class Indexer {
         reader = getNextFile();
 
         vocabulary = new HashMap<>();
+        document = new HashMap<>();
         tempFiles = new ArrayList<>();
         getStopWords();
     }
 
 
-    public BufferedReader getNextFile() {
+    private BufferedReader getNextFile() {
 //        Open file with html
         BufferedReader reader = null;
         try {
@@ -53,7 +55,7 @@ public class Indexer {
     }
 
 
-    public int getNextPage() {
+    private int getNextPage() {
         url = new StringBuilder();
         html = new StringBuilder();
         boolean urlFound = false;
@@ -112,14 +114,14 @@ public class Indexer {
     }
 
 
-    public void updateVocabulary(String term) {
+    private void updateVocabulary(String term) {
         if (!vocabulary.containsKey(term)) {
             vocabulary.put(term, vocabulary.size());
         }
     }
 
 
-    public void getStopWords() {
+    private void getStopWords() {
         try {
             Path stopWordsFile = Paths.get(getClass().getResource("StopWords.txt").toURI());
             stopWords = new HashSet<>();
@@ -132,7 +134,7 @@ public class Indexer {
     }
 
 
-    public void closeDocumentsFile(BufferedReader reader) {
+    private void closeDocumentsFile(BufferedReader reader) {
         try {
             reader.close();
         } catch (IOException e) {
@@ -141,7 +143,7 @@ public class Indexer {
     }
 
 
-    public void writeRunIntoTempFile(SortedMap<Integer, ArrayList<Tuple>> entryList,
+    private void writeRunIntoTempFile(SortedMap<Integer, ArrayList<Tuple>> entryList,
                                      Map<Integer, Map<Integer, Integer>> termFrequency) {
 
 //        Write run into temporary file
@@ -183,7 +185,7 @@ public class Indexer {
 //        Get next html and url and parse them
         while (getNextPage() != -1) {
 
-//            System.out.println(url.toString());
+            document.put(docNumber, url.toString());
             Document doc = Jsoup.parse(html.toString());
 
 //        For each term, do the trick

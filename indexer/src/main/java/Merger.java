@@ -7,17 +7,70 @@ import java.util.HashMap;
  */
 public class Merger {
     private ArrayList<BufferedReader> runsList;
+    private BufferedWriter indexWriter;
+    private Encoder enconder;
 
-    Merger(ArrayList<File> listOfFiles) {
+    Merger(ArrayList<File> listOfFiles, String outFileName) {
         runsList = new ArrayList<>();
         createRunReaders(listOfFiles);
+
+        indexWriter = createOutFile(outFileName);
+        enconder = new Encoder();
     }
 
 
-    private void writeIndexLine(int currentTerm, ArrayList<String> indexLine) {
-        for(String aaa : indexLine) {
-            System.out.println(aaa);
+    private BufferedWriter createOutFile(String outFileName) {
+        BufferedWriter bw = null;
+        try {
+            File outFile = new File(outFileName);
+            bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile)));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         }
+        return bw;
+    }
+
+
+    private void writeIndexLine(String indexLineFormat) {
+        try {
+            indexWriter.write(indexLineFormat);
+            System.out.print(indexLineFormat);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    private void createIndexLine(ArrayList<String> indexLine) {
+        StringBuilder indexLineFormat = new StringBuilder();
+        int NumberOfDocs = 0;
+        int previousDoc = -1;
+        int previousPosition = 0;
+        for(String line : indexLine) {
+            String[] lineSplit = line.split(" ");
+            if (Integer.valueOf(lineSplit[1]) != previousDoc) {
+                int gapDoc;
+                if (previousDoc != -1) {
+                    indexLineFormat.append("),");
+                    gapDoc = Integer.valueOf(lineSplit[1]) - previousDoc;
+                } else {
+                    gapDoc = Integer.valueOf(lineSplit[1]);
+                }
+
+                indexLineFormat.append("("+gapDoc+";"+lineSplit[3]);
+                previousDoc = Integer.valueOf(lineSplit[1]);
+                previousPosition = Integer.valueOf(lineSplit[3]);
+                NumberOfDocs++;
+
+            } else {
+                int gapPos = Integer.valueOf(lineSplit[3]) - previousPosition;
+                indexLineFormat.append(","+gapPos);
+                previousPosition = Integer.valueOf(lineSplit[3]);
+            }
+        }
+        indexLineFormat.append(")]\n");
+
+        writeIndexLine("["+NumberOfDocs+";"+indexLineFormat.toString());
     }
 
 
@@ -77,7 +130,7 @@ public class Merger {
                 runNumber++;
             }
 
-            writeIndexLine(current_term, indexLine);
+            createIndexLine(indexLine);
             indexLine = new ArrayList<>();
             current_term++;
         }
