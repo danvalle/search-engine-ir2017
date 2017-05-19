@@ -11,7 +11,7 @@ public class Merger {
     private Encoder encoder;
 
     private String outFileFolder;
-    private int maxFileSize = 30000;
+    private int maxFileSize = 6;
     private int NumberOfFiles = 1;
 
 
@@ -39,7 +39,7 @@ public class Merger {
 
     private void writeIndexLine(String indexLineFormat, int currentTerm) {
         try {
-            if (currentTerm == maxFileSize*NumberOfFiles) {
+            if (Math.log(currentTerm+1) >= maxFileSize+NumberOfFiles) {
                 indexWriter.close();
                 File outFile = new File(outFileFolder+currentTerm);
                 indexWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile)));

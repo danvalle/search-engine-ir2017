@@ -3,10 +3,7 @@ import org.jsoup.helper.StringUtil;
 import org.jsoup.nodes.Document;
 
 import java.io.*;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.Normalizer;
 import java.util.*;
 
@@ -23,7 +20,7 @@ public class Indexer {
     private HashSet<String> stopWords;
 
     private BufferedReader reader;
-    private char[] buffer = new char[5000];
+    private char[] buffer = new char[5000]; // 1MB
     private String[] pages = new String[0];
     private int bufferIndex = 0;
 
@@ -31,8 +28,25 @@ public class Indexer {
 
     Indexer(String dataPath) throws IOException {
         File dataFolder = new File(dataPath);
-        listOfFiles = dataFolder.listFiles();
+
+//        TEST
+        int testSize = 5;
+        listOfFiles = new File[testSize];
+        int i = 0;
+        for (File inputFile : dataFolder.listFiles()) {
+            System.out.println(inputFile);
+            listOfFiles[i] = inputFile;
+            i++;
+
+            if (i == testSize) {
+                break;
+            }
+        }
+
+
         reader = getNextFile();
+
+
 
         vocabulary = new HashMap<>();
         document = new HashMap<>();
@@ -124,11 +138,11 @@ public class Indexer {
 
     private void getStopWords() {
         try {
-            Path stopWordsFile = Paths.get(getClass().getResource("StopWords.txt").toURI());
+            File stopWordsFile = new File("indexer/src/main/resources/StopWords.txt");
             stopWords = new HashSet<>();
-            stopWords.addAll( Files.readAllLines(stopWordsFile) );
+            stopWords.addAll( Files.readAllLines(stopWordsFile.toPath()) );
 
-        } catch (URISyntaxException | IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
 
@@ -199,7 +213,8 @@ public class Indexer {
                     processedTolken = "number";
                 }
 
-                if (!stopWords.contains(processedTolken) && !processedTolken.isEmpty()) {
+                if (!stopWords.contains(processedTolken) && !processedTolken.isEmpty()
+                        && processedTolken.length() < 35) {
                     updateVocabulary(processedTolken);
 
                     Tuple newTuple = new Tuple(docNumber, position);

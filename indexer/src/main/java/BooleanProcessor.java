@@ -1,4 +1,7 @@
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.util.*;
 
 /**
@@ -62,11 +65,13 @@ public class BooleanProcessor {
                 throw new Exception("ERROR: Term " + queryTerm + " does not exist.");
             }
 
+            Arrays.sort(indexStartValues);
             int indexNumber = Arrays.binarySearch(indexStartValues, queryId);
             if (indexNumber < 0) {
                 indexNumber = -indexNumber - 2;
             }
-            FileInputStream fis = new FileInputStream(indexFiles.get(indexNumber));
+
+            FileInputStream fis = new FileInputStream(indexFiles.get(indexStartValues[indexNumber]));
             BufferedReader indexReader = new BufferedReader(new InputStreamReader(fis));
 
             int termLine = queryId - indexStartValues[indexNumber];
@@ -87,13 +92,10 @@ public class BooleanProcessor {
         int i = 0;
         for (Integer eachDocumentFound : documentsFound) {
             documentsList[i] = document.get(eachDocumentFound);
+            i++;
         }
 
         return documentsList;
     }
-
-
-
-
 
 }
