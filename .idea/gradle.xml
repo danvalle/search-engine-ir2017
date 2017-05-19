@@ -10,7 +10,6 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/indexer" />
-            <option value="$PROJECT_DIR$/search" />
           </set>
         </option>
       </GradleProjectSettings>

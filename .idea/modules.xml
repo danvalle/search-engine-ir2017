@@ -5,10 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/indexer/indexer.iml" filepath="$PROJECT_DIR$/.idea/modules/indexer/indexer.iml" group="indexer" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/indexer/indexer_main.iml" filepath="$PROJECT_DIR$/.idea/modules/indexer/indexer_main.iml" group="indexer" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/indexer/indexer_test.iml" filepath="$PROJECT_DIR$/.idea/modules/indexer/indexer_test.iml" group="indexer" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/search/search.iml" filepath="$PROJECT_DIR$/.idea/modules/search/search.iml" group="search" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/search-engine-ir2017.iml" filepath="$PROJECT_DIR$/.idea/modules/search-engine-ir2017.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/search/search_main.iml" filepath="$PROJECT_DIR$/.idea/modules/search/search_main.iml" group="search" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/search/search_test.iml" filepath="$PROJECT_DIR$/.idea/modules/search/search_test.iml" group="search" />
     </modules>
   </component>
 </project>

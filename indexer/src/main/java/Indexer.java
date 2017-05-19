@@ -69,10 +69,11 @@ public class Indexer {
                 try {
                     endOfDocumentsFile = reader.read(buffer, 0, buffer.length);
                     if ((endOfDocumentsFile == -1) && (fileNum < listOfFiles.length)) {
+                        closeDocumentsFile(reader);
                         reader = getNextFile();
                         url = new StringBuilder();
                         html = new StringBuilder();
-                        System.out.println("Changing file...");
+//                        System.out.println("Changing file...");
                         endOfDocumentsFile = reader.read(buffer, 0, buffer.length);
                     }
                     String bufferString = new String(buffer);

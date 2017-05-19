@@ -8,21 +8,27 @@ import java.util.HashMap;
 public class Merger {
     private ArrayList<BufferedReader> runsList;
     private BufferedWriter indexWriter;
-    private Encoder enconder;
+    private Encoder encoder;
 
-    Merger(ArrayList<File> listOfFiles, String outFileName) {
+    private String outFileFolder;
+    private int maxFileSize = 30000;
+    private int NumberOfFiles = 1;
+
+
+    Merger(ArrayList<File> listOfFiles, String outFileFolder) {
         runsList = new ArrayList<>();
         createRunReaders(listOfFiles);
 
-        indexWriter = createOutFile(outFileName);
-        enconder = new Encoder();
+        this.outFileFolder = outFileFolder;
+        indexWriter = createOutFile();
+        encoder = new Encoder();
     }
 
 
-    private BufferedWriter createOutFile(String outFileName) {
+    private BufferedWriter createOutFile() {
         BufferedWriter bw = null;
         try {
-            File outFile = new File(outFileName);
+            File outFile = new File(outFileFolder+'0');
             bw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile)));
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -31,17 +37,24 @@ public class Merger {
     }
 
 
-    private void writeIndexLine(String indexLineFormat) {
+    private void writeIndexLine(String indexLineFormat, int currentTerm) {
         try {
+            if (currentTerm == maxFileSize*NumberOfFiles) {
+                indexWriter.close();
+                File outFile = new File(outFileFolder+currentTerm);
+                indexWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile)));
+                NumberOfFiles++;
+            }
+
             indexWriter.write(indexLineFormat);
-            System.out.print(indexLineFormat);
+//            System.out.print(indexLineFormat);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
 
-    private void createIndexLine(ArrayList<String> indexLine) {
+    private void createIndexLine(ArrayList<String> indexLine, int currentTerm) {
         StringBuilder indexLineFormat = new StringBuilder();
         int NumberOfDocs = 0;
         int previousDoc = -1;
@@ -51,26 +64,31 @@ public class Merger {
             if (Integer.valueOf(lineSplit[1]) != previousDoc) {
                 int gapDoc;
                 if (previousDoc != -1) {
-                    indexLineFormat.append("),");
                     gapDoc = Integer.valueOf(lineSplit[1]) - previousDoc;
                 } else {
                     gapDoc = Integer.valueOf(lineSplit[1]);
                 }
 
-                indexLineFormat.append("("+gapDoc+";"+lineSplit[3]);
+//                indexLineFormat.append(" "+gapDoc+" "+lineSplit[2]+" "+lineSplit[3]);
+                indexLineFormat.append(encoder.encode(gapDoc)+
+                        encoder.encode(lineSplit[2])+
+                        encoder.encode(lineSplit[3]));
                 previousDoc = Integer.valueOf(lineSplit[1]);
                 previousPosition = Integer.valueOf(lineSplit[3]);
                 NumberOfDocs++;
 
             } else {
                 int gapPos = Integer.valueOf(lineSplit[3]) - previousPosition;
-                indexLineFormat.append(","+gapPos);
+//                indexLineFormat.append(" "+gapPos);
+                indexLineFormat.append(encoder.encode(gapPos));
+
                 previousPosition = Integer.valueOf(lineSplit[3]);
             }
         }
-        indexLineFormat.append(")]\n");
+        indexLineFormat.append("\n");
 
-        writeIndexLine("["+NumberOfDocs+";"+indexLineFormat.toString());
+//        writeIndexLine(NumberOfDocs+indexLineFormat.toString());
+        writeIndexLine(encoder.encode(NumberOfDocs)+indexLineFormat.toString(), currentTerm);
     }
 
 
@@ -95,7 +113,7 @@ public class Merger {
             endedFiles.add(i, 0);
         }
 
-        int current_term = 0;
+        int currentTerm = 0;
         int filesHasEnded = 0;
         while (filesHasEnded != runsList.size()) {
             int runNumber = 0;
@@ -118,7 +136,7 @@ public class Merger {
                         }
                         termEnded = true;
                     }
-                    else if (Integer.valueOf(line.split(" ")[0]) == current_term) {
+                    else if (Integer.valueOf(line.split(" ")[0]) == currentTerm) {
                         indexLine.add(line);
 
                     } else {
@@ -130,9 +148,10 @@ public class Merger {
                 runNumber++;
             }
 
-            createIndexLine(indexLine);
+            createIndexLine(indexLine, currentTerm);
             indexLine = new ArrayList<>();
-            current_term++;
+            currentTerm++;
         }
+        indexWriter.close();
     }
 }
