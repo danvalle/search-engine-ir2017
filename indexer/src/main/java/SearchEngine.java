@@ -84,13 +84,13 @@ public class SearchEngine {
             Indexer indexer = new Indexer(args[1]);
             ArrayList<File> listOfRunFiles = indexer.buildIndex();
             System.out.println("Runs Created: " + (System.currentTimeMillis() - startTime));
+            System.out.println("Vocabulary Size: " + indexer.vocabulary.size());
+            System.out.println("Documents Size: " + indexer.document.size());
 
             Merger merger = new Merger(listOfRunFiles, indexPath.getAbsolutePath()+"/");
             merger.mergeRuns();
             System.out.println("Index Created: " + (System.currentTimeMillis() - startTime));
 
-            System.out.println("Vocabulary Size: " + indexer.vocabulary.size());
-            System.out.println("Documents Size: " + indexer.document.size());
             saveVocabularyIntoFile(indexer.vocabulary);
             saveDocumentsIntoFile(indexer.document);
             System.out.println("Vocabulary and Urls Saved: " + (System.currentTimeMillis() - startTime));

@@ -20,7 +20,7 @@ public class Indexer {
     private HashSet<String> stopWords;
 
     private BufferedReader reader;
-    private char[] buffer = new char[5000]; // 1MB
+    private char[] buffer = new char[1048576];
     private String[] pages = new String[0];
     private int bufferIndex = 0;
 
@@ -30,11 +30,11 @@ public class Indexer {
         File dataFolder = new File(dataPath);
 
 //        TEST
-        int testSize = 5;
+        int testSize = 425;
         listOfFiles = new File[testSize];
         int i = 0;
         for (File inputFile : dataFolder.listFiles()) {
-            System.out.println(inputFile);
+//            System.out.println(inputFile);
             listOfFiles[i] = inputFile;
             i++;
 
@@ -45,9 +45,6 @@ public class Indexer {
 
 
         reader = getNextFile();
-
-
-
         vocabulary = new HashMap<>();
         document = new HashMap<>();
         tempFiles = new ArrayList<>();
@@ -87,7 +84,7 @@ public class Indexer {
                         reader = getNextFile();
                         url = new StringBuilder();
                         html = new StringBuilder();
-//                        System.out.println("Changing file...");
+                        System.out.println("Changing file...");
                         endOfDocumentsFile = reader.read(buffer, 0, buffer.length);
                     }
                     String bufferString = new String(buffer);
@@ -200,8 +197,11 @@ public class Indexer {
 //        Get next html and url and parse them
         while (getNextPage() != -1) {
 
-            document.put(docNumber, url.toString());
             Document doc = Jsoup.parse(html.toString());
+            if (doc.body() == null || doc.body().text() == null || url.length() > 180 || url.length() == 0) {
+                continue;
+            }
+            document.put(docNumber, url.toString());
 
 //        For each term, do the trick
             String processedTolken;
@@ -240,7 +240,7 @@ public class Indexer {
             }
             docNumber++;
 
-            if (entriesNumber >= 50000) {
+            if (entriesNumber >= 500000) {
                 writeRunIntoTempFile(entryList, termFrequency);
 //                        Reset entries for new run
                 entryList = new TreeMap<>();
