@@ -1,5 +1,9 @@
 /**
  * Created by dan on 17/05/17.
+ *
+ * This class encodes and decodes the terms and lines in a different base,
+ * excluding the unwanted characters
+ *
  */
 public class Encoder {
     public String encode(int value) {

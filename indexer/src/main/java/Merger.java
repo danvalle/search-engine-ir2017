@@ -4,6 +4,10 @@ import java.util.HashMap;
 
 /**
  * Created by dan on 16/05/17.
+ *
+ * This class gets the temporary files filled with the tuples
+ * and merge them into the index file
+ *
  */
 public class Merger {
     private ArrayList<BufferedReader> runsList;
@@ -47,7 +51,6 @@ public class Merger {
             }
 
             indexWriter.write(indexLineFormat);
-//            System.out.print(indexLineFormat);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -59,6 +62,8 @@ public class Merger {
         int NumberOfDocs = 0;
         int previousDoc = -1;
         int previousPosition = 0;
+//        For each index entry, encode all terms and add to the file
+//        and break line to maintain line - term id relevance
         for(String line : indexLine) {
             String[] lineSplit = line.split(" ");
             if (Integer.valueOf(lineSplit[1]) != previousDoc) {
@@ -69,7 +74,6 @@ public class Merger {
                     gapDoc = Integer.valueOf(lineSplit[1]);
                 }
 
-//                indexLineFormat.append(" "+gapDoc+" "+lineSplit[2]+" "+lineSplit[3]);
                 indexLineFormat.append(encoder.encode(gapDoc)+
                         encoder.encode(lineSplit[2])+
                         encoder.encode(lineSplit[3]));
@@ -79,7 +83,6 @@ public class Merger {
 
             } else {
                 int gapPos = Integer.valueOf(lineSplit[3]) - previousPosition;
-//                indexLineFormat.append(" "+gapPos);
                 indexLineFormat.append(encoder.encode(gapPos));
 
                 previousPosition = Integer.valueOf(lineSplit[3]);
@@ -87,7 +90,6 @@ public class Merger {
         }
         indexLineFormat.append("\n");
 
-//        writeIndexLine(NumberOfDocs+indexLineFormat.toString());
         writeIndexLine(encoder.encode(NumberOfDocs)+indexLineFormat.toString(), currentTerm);
     }
 
@@ -113,6 +115,8 @@ public class Merger {
             endedFiles.add(i, 0);
         }
 
+//        For each temporary file, it reads line after line looking for terms that
+//        are already sorted
         int currentTerm = 0;
         int filesHasEnded = 0;
         while (filesHasEnded != runsList.size()) {
@@ -129,6 +133,7 @@ public class Merger {
 
                     }
 
+//                    Temporary file is over
                     if (line == null) {
                         if (endedFiles.get(runNumber) == 0) {
                             endedFiles.set(runNumber, 1);
@@ -136,9 +141,11 @@ public class Merger {
                         }
                         termEnded = true;
                     }
+//                    If line has the term we are looking for, get it
                     else if (Integer.valueOf(line.split(" ")[0]) == currentTerm) {
                         indexLine.add(line);
 
+//                    Otherwise, this temporary file do not need to be read anymore
                     } else {
                         next.put(runNumber, line);
                         termEnded = true;
@@ -148,6 +155,7 @@ public class Merger {
                 runNumber++;
             }
 
+//            When all files have been pass through, create a new entry in the index file
             createIndexLine(indexLine, currentTerm);
             indexLine = new ArrayList<>();
             currentTerm++;

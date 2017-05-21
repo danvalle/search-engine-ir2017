@@ -6,6 +6,9 @@ import java.util.*;
 
 /**
  * Created by dan on 17/05/17.
+ *
+ * Search for the terms in the index and work as a set
+ *
  */
 public class BooleanProcessor {
     private int[] indexStartValues;
@@ -33,7 +36,7 @@ public class BooleanProcessor {
         }
     }
 
-
+//    Gets the documents related to the term in the read line
     private Set<Integer> parseLineToDocuments(String line) {
         Set<Integer> docsInLine = new HashSet<>();
         String[] splitLine = line.split(" ");
@@ -53,6 +56,7 @@ public class BooleanProcessor {
     }
 
 
+//    Looks for the term in the index and creates a set
     public String[] search(String query) throws Exception {
         String[] queryTerms = query.split("and");
         Encoder encoder = new Encoder();
@@ -64,7 +68,7 @@ public class BooleanProcessor {
             if (vocabulary.get(queryTerm) == null) {
                 throw new Exception("ERROR: Term " + queryTerm + " does not exist.");
             }
-
+//            Finds which file contains the term
             Arrays.sort(indexStartValues);
             int indexNumber = Arrays.binarySearch(indexStartValues, queryId);
             if (indexNumber < 0) {
@@ -80,14 +84,14 @@ public class BooleanProcessor {
             }
             String line = indexReader.readLine();
             line = encoder.decodeLine(line);
-
+//            Work as a set to get only the intersection
             if (documentsFound.isEmpty()) {
                 documentsFound = parseLineToDocuments(line);
             } else {
                 documentsFound.retainAll(parseLineToDocuments(line));
             }
         }
-
+//        Get the names of the documents found
         String[] documentsList = new String[documentsFound.size()];
         int i = 0;
         for (Integer eachDocumentFound : documentsFound) {

@@ -5,6 +5,10 @@ import java.util.Map;
 
 /**
  * Created by dan on 18/05/17.
+ *
+ * Choose between create an index or search for documents in
+ * an index previously created
+ *
  */
 public class SearchEngine {
 
@@ -80,13 +84,15 @@ public class SearchEngine {
         File indexPath = new File("index/");
         long startTime = System.currentTimeMillis();
 
+//        If argument is index, create a new index
         if (args[0].equals("index")) {
+//            First we get the input and create the temporary files
             Indexer indexer = new Indexer(args[1]);
             ArrayList<File> listOfRunFiles = indexer.buildIndex();
             System.out.println("Runs Created: " + (System.currentTimeMillis() - startTime));
             System.out.println("Vocabulary Size: " + indexer.vocabulary.size());
             System.out.println("Documents Size: " + indexer.document.size());
-
+//            Then, we merge the temporary files correctly into the index file
             Merger merger = new Merger(listOfRunFiles, indexPath.getAbsolutePath()+"/");
             merger.mergeRuns();
             System.out.println("Index Created: " + (System.currentTimeMillis() - startTime));
@@ -95,6 +101,7 @@ public class SearchEngine {
             saveDocumentsIntoFile(indexer.document);
             System.out.println("Vocabulary and Urls Saved: " + (System.currentTimeMillis() - startTime));
 
+//         If the argument is search, get index already existent and search in it
         } else if (args[0].equals("search")) {
             HashMap<String, Integer> vocabulary = loadVocabularyFromFile();
             HashMap<Integer, String> document = loadDocumentsFromFile();

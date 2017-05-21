@@ -7,6 +7,18 @@ import java.nio.file.Files;
 import java.text.Normalizer;
 import java.util.*;
 
+
+/**
+ * Created by dan on 11/05/17.
+ *
+ * Indexer looks for the terms and creates temporary files to
+ * be marged later
+ *
+ *
+ */
+
+
+
 public class Indexer {
     public HashMap<String, Integer> vocabulary;
     public HashMap<Integer, String> document;
@@ -30,11 +42,10 @@ public class Indexer {
         File dataFolder = new File(dataPath);
 
 //        TEST
-        int testSize = 425;
+        int testSize = 190;
         listOfFiles = new File[testSize];
         int i = 0;
         for (File inputFile : dataFolder.listFiles()) {
-//            System.out.println(inputFile);
             listOfFiles[i] = inputFile;
             i++;
 
@@ -73,6 +84,7 @@ public class Indexer {
         boolean htmlFound = false;
         int endOfDocumentsFile = 0;
 
+//        Looks for a new url and html reading files in blocks inside a buffer
         while (!urlFound || !htmlFound) {
             if (bufferIndex == pages.length) {
                 bufferIndex = 0;
@@ -95,11 +107,13 @@ public class Indexer {
                 }
             }
 
-//            Next buffer and first letter is the html_url division
+//            If information comes in the end of the buffer, we have to know if it continues
+//            or the next block will have other information
             if  (pages[bufferIndex].isEmpty() && urlFound) {
                 htmlFound = true;
             }
 
+//            Url is the first to be found
             if (!urlFound) {
                 while (pages[bufferIndex].isEmpty()) {
                     bufferIndex++;
@@ -111,6 +125,7 @@ public class Indexer {
                 }
             }
 
+//            When the url has already been found, go for the html
             if (urlFound && bufferIndex!=pages.length+1 && !htmlFound) {
                 while (pages[bufferIndex].isEmpty()) {
                     bufferIndex++;
@@ -203,7 +218,7 @@ public class Indexer {
             }
             document.put(docNumber, url.toString());
 
-//        For each term, do the trick
+//        For each term, clean it and add to the vocabulary if not seen before
             String processedTolken;
             int position = 0;
             for (String tolken : doc.body().text().split(" ")) {
@@ -217,6 +232,8 @@ public class Indexer {
                         && processedTolken.length() < 35) {
                     updateVocabulary(processedTolken);
 
+//                    Create a new tuple for each occurrence of a term in a document and keep
+//                    track of its frequency
                     Tuple newTuple = new Tuple(docNumber, position);
                     int tolkenNumber = vocabulary.get(processedTolken);
                     if (!entryList.containsKey(tolkenNumber)) {
@@ -240,9 +257,9 @@ public class Indexer {
             }
             docNumber++;
 
+//            Reset entries for new run
             if (entriesNumber >= 500000) {
                 writeRunIntoTempFile(entryList, termFrequency);
-//                        Reset entries for new run
                 entryList = new TreeMap<>();
                 termFrequency = new HashMap<>();
                 entriesNumber = 0;

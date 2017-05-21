@@ -1,5 +1,9 @@
 /**
  * Created by dan on 27/04/17.
+ *
+ * Common tuple of (document, position) that will be hold
+ * in the index construction
+ *
  */
 public class Tuple {
     public int d;
