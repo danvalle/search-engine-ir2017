@@ -20,8 +20,10 @@ $ gradle clean makeJar
 
 ```
 
-To index a collection, execute as **index** and give the path to the collection (folder must contain only the data):
+To index a collection, create fold index in package and execute as **index** and give the path to the collection (folder must contain only the data):
 ```
+$ cd {repo_path}/search-engine-ir2017
+$ mkdir index
 $ java -jar indexer/build/libs/indexer-ri-1.0-SNAPSHOT.jar index /path/to/collection/
 
 ```
