@@ -83,7 +83,6 @@ public class Indexer {
                         reader = getNextFile();
                         url = new StringBuilder();
                         html = new StringBuilder();
-                        System.out.println("Changing file...");
                         endOfDocumentsFile = reader.read(buffer, 0, buffer.length);
                     }
                     String bufferString = new String(buffer);
