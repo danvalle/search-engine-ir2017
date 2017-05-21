@@ -41,20 +41,7 @@ public class Indexer {
     Indexer(String dataPath) throws IOException {
         File dataFolder = new File(dataPath);
 
-//        TEST
-        int testSize = 190;
-        listOfFiles = new File[testSize];
-        int i = 0;
-        for (File inputFile : dataFolder.listFiles()) {
-            listOfFiles[i] = inputFile;
-            i++;
-
-            if (i == testSize) {
-                break;
-            }
-        }
-
-
+        listOfFiles = dataFolder.listFiles();
         reader = getNextFile();
         vocabulary = new HashMap<>();
         document = new HashMap<>();
