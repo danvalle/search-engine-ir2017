@@ -1,3 +1,5 @@
 rootProject.name = 'search-engine-ir2017'
 
 include 'indexer'
+include 'searcher'
+
