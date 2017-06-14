@@ -22,6 +22,7 @@ import java.util.*;
 public class Indexer {
     public HashMap<String, Integer> vocabulary;
     public HashMap<Integer, String> document;
+    public HashMap<Integer, Double> documentNorm;
     private ArrayList<File> tempFiles;
 
     private File[] listOfFiles;
@@ -45,6 +46,7 @@ public class Indexer {
         reader = getNextFile();
         vocabulary = new HashMap<>();
         document = new HashMap<>();
+        documentNorm = new HashMap<>();
         tempFiles = new ArrayList<>();
         getStopWords();
     }
@@ -187,11 +189,26 @@ public class Indexer {
     }
 
 
+    private void getNorm(HashMap<Integer, Double> tfList) {
+        Double squareSum = 0.0;
+        Double current_tf;
+        Iterator it = tfList.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            current_tf = (Math.log((Double) pair.getValue()));
+            squareSum += Math.pow(current_tf, 2);
+        }
+        documentNorm.put(docNumber, Math.sqrt(squareSum + 1));
+    }
+
+
     public  ArrayList<File> buildIndex() {
 
 //        Store tuples and frequencies
         SortedMap<Integer, ArrayList<Tuple>> entryList = new TreeMap<>();
         Map<Integer, Map<Integer, Integer>> termFrequency = new HashMap<>();
+        HashMap<Integer, Double> tfList = new HashMap();
+        Double current_tf;
         int entriesNumber = 0;
 
 
@@ -227,6 +244,9 @@ public class Indexer {
                         termFrequency.put(tolkenNumber, new HashMap<>());
                     }
                     entryList.get(tolkenNumber).add(newTuple);
+                    tfList.putIfAbsent(tolkenNumber, 0.0);
+                    current_tf = tfList.get(tolkenNumber);
+                    tfList.replace(tolkenNumber, current_tf+1.0);
 
                     if (!termFrequency.get(tolkenNumber).containsKey(docNumber)) {
                         termFrequency.get(tolkenNumber).put(docNumber, 1);
@@ -241,6 +261,8 @@ public class Indexer {
 
                 }
             }
+            getNorm(tfList);
+            tfList = new HashMap();
             docNumber++;
 
 //            Reset entries for new run

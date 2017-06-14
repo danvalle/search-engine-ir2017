@@ -12,13 +12,16 @@ public class VectorialProcessor {
     private SortedMap<Integer, File> indexFiles;
     private HashMap<String, Integer> vocabulary;
     private HashMap<Integer, String> document;
+    private HashMap<Integer, Double> documentNorm;
 
 
     VectorialProcessor(String indexFileFolder,
                      HashMap<String, Integer> vocabulary,
-                     HashMap<Integer, String> document) {
+                     HashMap<Integer, String> document,
+                     HashMap<Integer, Double> documentNorm) {
         this.vocabulary = vocabulary;
         this.document = document;
+        this.documentNorm = documentNorm;
 
         File[] filesList = new File(indexFileFolder).listFiles();
         indexFiles = new TreeMap<>();
@@ -40,16 +43,16 @@ public class VectorialProcessor {
         Integer docSum = 0;
 
         Double idf = Math.log(vocabulary.size() / NumberOfDocs);
-        Double current_tf;
-        Double current_tf_idf;
+        Double currentTf;
+        Double currentTfIdf;
         Integer i = 1;
         while (i < splitLine.length) {
             docSum += Integer.valueOf(splitLine[i]);
             documentsDist.putIfAbsent(docSum, 0.0);
 
-            current_tf = 1 + Math.log(Integer.valueOf(splitLine[i+1]));
-            current_tf_idf = documentsDist.get(docSum) + (current_tf * idf);
-            documentsDist.replace(docSum, current_tf_idf);
+            currentTf = 1 + Math.log(Integer.valueOf(splitLine[i+1]));
+            currentTfIdf = documentsDist.get(docSum) + (currentTf * idf);
+            documentsDist.replace(docSum, currentTfIdf);
 
             i += (Integer.valueOf(splitLine[i+1]) + 2);
         }
@@ -57,8 +60,8 @@ public class VectorialProcessor {
 
 
     //    Looks for the term in the index and creates a set
-    public String[] search(String query) throws Exception {
-        String[] queryTerms = query.split("and");
+    public SortedMap<Double, Integer> search(String query) throws Exception {
+        String[] queryTerms = query.split(" ");
         Encoder encoder = new Encoder();
         Map<Integer, Double> documentsDist = new HashMap<>();
 
@@ -88,10 +91,17 @@ public class VectorialProcessor {
             parseTermLine(line, documentsDist);
         }
 
+//        Normalize and Order answer
+        SortedMap<Double, Integer> orderedAnswer = new TreeMap(Collections.reverseOrder());
+        Iterator it = documentsDist.entrySet().iterator();
+        Double normalizedValue;
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            normalizedValue = (Double) pair.getValue() / documentNorm.get(pair.getKey());
+            orderedAnswer.put(normalizedValue, (Integer) pair.getKey());
+        }
 
-
-        String[] aaa = {"Be","Good"};
-        return aaa;
+        return orderedAnswer;
     }
 
 }

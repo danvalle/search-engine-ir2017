@@ -46,14 +46,18 @@ public class SearchEngine {
     }
 
 
-    private static void saveDocumentsIntoFile(HashMap<Integer, String> doc) {
+    private static void saveDocumentsIntoFile(HashMap<Integer, String> doc, HashMap<Integer, Double> docNorm) {
         try {
             File outFile = new File("./documents");
+            File normFile = new File("./documentsNorm");
             BufferedWriter docWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile)));
+            BufferedWriter normWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(normFile)));
             for (Map.Entry<Integer, String> entry : doc.entrySet()) {
                 docWriter.write(entry.getKey() + " " + entry.getValue()+"\n");
+                normWriter.write(entry.getKey() + " " + docNorm.get(entry.getKey()) +"\n");
             }
             docWriter.close();
+            normWriter.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -98,7 +102,7 @@ public class SearchEngine {
             System.out.println("Index Created: " + (System.currentTimeMillis() - startTime));
 
             saveVocabularyIntoFile(indexer.vocabulary);
-            saveDocumentsIntoFile(indexer.document);
+            saveDocumentsIntoFile(indexer.document, indexer.documentNorm);
             System.out.println("Vocabulary and Urls Saved: " + (System.currentTimeMillis() - startTime));
 
 //         If the argument is search, get index already existent and search in it

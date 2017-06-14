@@ -1,5 +1,6 @@
 import java.io.*;
 import java.util.HashMap;
+import java.util.SortedMap;
 
 /**
  * Created by dan on 13/06/17.
@@ -46,6 +47,24 @@ public class SearchEngine {
     }
 
 
+    private static HashMap<Integer, Double> loadDocumentsNormFromFile() {
+        HashMap<Integer, Double> documentNorm = new HashMap<>();
+        try {
+            File inFile = new File("./documentsNorm");
+            BufferedReader docReader = new BufferedReader(new InputStreamReader((new FileInputStream(inFile))));
+            String line;
+            String[] splitLine;
+            while ((line = docReader.readLine()) != null) {
+                splitLine = line.split(" ");
+                documentNorm.put(Integer.valueOf(splitLine[0]), Double.valueOf(splitLine[1]));
+            }
+            docReader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return documentNorm;
+    }
 
 
 
@@ -57,17 +76,17 @@ public class SearchEngine {
 
         HashMap<String, Integer> vocabulary = loadVocabularyFromFile();
         HashMap<Integer, String> document = loadDocumentsFromFile();
+        HashMap<Integer, Double> documentNorm = loadDocumentsNormFromFile();
         System.out.println("Vocabulary and Urls Loaded: " + (System.currentTimeMillis() - startTime));
 
 
         VectorialProcessor searcher = new VectorialProcessor(indexPath.getAbsolutePath()+"/",
                 vocabulary,
-                document);
+                document,
+                documentNorm);
 
-        String[] ans = searcher.search("pao and cafe");
+        SortedMap<Double, Integer> ans = searcher.search("hotel fazenda cafe");
         System.out.println("Pages found: " + (System.currentTimeMillis() - startTime));
-        for(String url : ans) {
-            System.out.println(url);
-        }
+
     }
 }
