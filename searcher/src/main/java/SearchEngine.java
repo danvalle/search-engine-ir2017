@@ -1,6 +1,5 @@
 import java.io.*;
 import java.util.HashMap;
-import java.util.SortedMap;
 
 /**
  * Created by dan on 13/06/17.
@@ -68,8 +67,6 @@ public class SearchEngine {
 
 
 
-
-
     public static void main(String [] args) throws Exception {
         File indexPath = new File("index/");
         long startTime = System.currentTimeMillis();
@@ -80,12 +77,16 @@ public class SearchEngine {
         System.out.println("Vocabulary and Urls Loaded: " + (System.currentTimeMillis() - startTime));
 
 
-        VectorialProcessor searcher = new VectorialProcessor(indexPath.getAbsolutePath()+"/",
-                vocabulary,
-                document,
-                documentNorm);
+        PageRank pagerank = new PageRank(document, "/home/dan/UFMG/RI/small_collection/");
+        pagerank.getLinks();
+        pagerank.iterate();
 
-        SortedMap<Double, Integer> ans = searcher.search("hotel fazenda cafe");
+//        VectorialProcessor searcher = new VectorialProcessor(indexPath.getAbsolutePath()+"/",
+//                vocabulary,
+//                document,
+//                documentNorm);
+//
+//        SortedMap<Double, Integer> ans = searcher.search("hotel fazenda cafe");
         System.out.println("Pages found: " + (System.currentTimeMillis() - startTime));
 
     }
