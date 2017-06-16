@@ -83,41 +83,73 @@ public class SearchEngine {
     }
 
 
-    private static void saveAnchorIndex(HashMap<String, Integer> anchorVocabulary,
-                                        HashMap<Integer, HashSet<Integer>> anchorIndex) {
-
+    private static void saveAnchorIndex(HashMap<Integer, HashSet<Integer>> anchorIndex) {
+        Encoder encoder = new Encoder();
+        try {
+            File outFile = new File("./anchorIndex");
+            BufferedWriter docWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile)));
+            for (Map.Entry<Integer, HashSet<Integer>> entry : anchorIndex.entrySet()) {
+                docWriter.write(encoder.encode(entry.getKey()));
+                for (Integer docNumber : entry.getValue()) {
+                    docWriter.write(" " + encoder.encode(docNumber));
+                }
+                docWriter.write("\n");
+            }
+            docWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
     }
 
+
+    private static void saveAnchorVocabulary(HashMap<String, Integer> anchorVocabulary) {
+        try {
+            File outFile = new File("./anchorVocabulary");
+            BufferedWriter docWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile)));
+            for (Map.Entry<String, Integer> entry : anchorVocabulary.entrySet()) {
+                docWriter.write(entry.getKey() + ";" + entry.getValue() + "\n");
+            }
+            docWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
 
     public static void main(String [] args) throws Exception {
         File indexPath = new File("index/");
         long startTime = System.currentTimeMillis();
 
-        HashMap<String, Integer> vocabulary = loadVocabularyFromFile();
         HashMap<Integer, String> document = loadDocumentsFromFile();
-        HashMap<Integer, Double> documentNorm = loadDocumentsNormFromFile();
-        System.out.println("Vocabulary and Urls Loaded: " + (System.currentTimeMillis() - startTime));
+        System.out.println("Loaded: " + (System.currentTimeMillis() - startTime));
 
-//        VectorialProcessor searcher = new VectorialProcessor(indexPath.getAbsolutePath()+"/",
-//                vocabulary,
-//                document,
-//                documentNorm);
-//        SortedMap<Double, Integer> ans = searcher.search("hotel fazenda cafe");
+        if (args[0].equals("pagerank")) {
+            Double alpha = Double.valueOf(args[1]);
 
+            PageRank pagerank = new PageRank(document, "/home/dan/UFMG/RI/small_collection/");
+            pagerank.getLinks();
+            pagerank.iterate(alpha);
 
-        PageRank pagerank = new PageRank(document, "/home/dan/UFMG/RI/small_collection/");
-        pagerank.getLinks();
-        double alpha = 0.8;
-        pagerank.iterate(alpha);
+            savePageRankIntoFile(document, pagerank.pageRankValues);
+            saveAnchorIndex(pagerank.anchorIndex);
+            saveAnchorVocabulary(pagerank.anchorVocabulary);
 
-        savePageRankIntoFile(document, pagerank.pageRankValues);
-        saveAnchorIndex(pagerank.anchorVocabulary, pagerank.anchorIndex);
+        } else if (args[0].equals("search")) {
+            HashMap<String, Integer> vocabulary = loadVocabularyFromFile();
+            HashMap<Integer, Double> documentNorm = loadDocumentsNormFromFile();
 
+            VectorialProcessor searcher = new VectorialProcessor(indexPath.getAbsolutePath() + "/",
+                    vocabulary,
+                    documentNorm);
+            SortedMap<Double, HashSet<Integer>> ans = searcher.search("hotel fazenda cafe");
 
+            System.out.println("Pages found: " + (System.currentTimeMillis() - startTime));
 
-        System.out.println("Pages found: " + (System.currentTimeMillis() - startTime));
+        } else {
+            System.out.println("ERROR: Command not found");
+
+        }
 
     }
 }

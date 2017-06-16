@@ -11,16 +11,13 @@ public class VectorialProcessor {
     private int[] indexStartValues;
     private SortedMap<Integer, File> indexFiles;
     private HashMap<String, Integer> vocabulary;
-    private HashMap<Integer, String> document;
     private HashMap<Integer, Double> documentNorm;
 
 
     VectorialProcessor(String indexFileFolder,
                      HashMap<String, Integer> vocabulary,
-                     HashMap<Integer, String> document,
                      HashMap<Integer, Double> documentNorm) {
         this.vocabulary = vocabulary;
-        this.document = document;
         this.documentNorm = documentNorm;
 
         File[] filesList = new File(indexFileFolder).listFiles();
@@ -60,7 +57,7 @@ public class VectorialProcessor {
 
 
     //    Looks for the term in the index and creates a set
-    public SortedMap<Double, Integer> search(String query) throws Exception {
+    public SortedMap<Double, HashSet<Integer>> search(String query) throws Exception {
         String[] queryTerms = query.split(" ");
         Encoder encoder = new Encoder();
         Map<Integer, Double> documentsDist = new HashMap<>();
@@ -92,16 +89,16 @@ public class VectorialProcessor {
         }
 
 //        Normalize and Order answer
-        SortedMap<Double, Integer> orderedAnswer = new TreeMap(Collections.reverseOrder());
+        SortedMap<Double, HashSet<Integer>> orderedAnswer = new TreeMap(Collections.reverseOrder());
         Iterator it = documentsDist.entrySet().iterator();
         Double normalizedValue;
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry)it.next();
             normalizedValue = (Double) pair.getValue() / documentNorm.get(pair.getKey());
-            orderedAnswer.put(normalizedValue, (Integer) pair.getKey());
+            orderedAnswer.putIfAbsent(normalizedValue, new HashSet<>());
+            orderedAnswer.get(normalizedValue).add((Integer) pair.getKey());
         }
 
         return orderedAnswer;
     }
-
 }
