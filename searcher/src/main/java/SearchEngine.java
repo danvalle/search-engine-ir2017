@@ -1,5 +1,8 @@
 import java.io.*;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.SortedMap;
 
 /**
  * Created by dan on 13/06/17.
@@ -66,6 +69,27 @@ public class SearchEngine {
     }
 
 
+    private static void savePageRankIntoFile(HashMap<Integer, String> doc, HashMap<String, Double> pageRank) {
+        try {
+            File outFile = new File("./pagerank");
+            BufferedWriter docWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile)));
+            for (Map.Entry<Integer, String> entry : doc.entrySet()) {
+                docWriter.write(entry.getKey() + " " + pageRank.get(entry.getValue())+"\n");
+            }
+            docWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    private static void saveAnchorIndex(HashMap<String, Integer> anchorVocabulary,
+                                        HashMap<Integer, HashSet<Integer>> anchorIndex) {
+
+
+    }
+
+
 
     public static void main(String [] args) throws Exception {
         File indexPath = new File("index/");
@@ -76,17 +100,23 @@ public class SearchEngine {
         HashMap<Integer, Double> documentNorm = loadDocumentsNormFromFile();
         System.out.println("Vocabulary and Urls Loaded: " + (System.currentTimeMillis() - startTime));
 
-
-        PageRank pagerank = new PageRank(document, "/home/dan/UFMG/RI/small_collection/");
-        pagerank.getLinks();
-        pagerank.iterate();
-
 //        VectorialProcessor searcher = new VectorialProcessor(indexPath.getAbsolutePath()+"/",
 //                vocabulary,
 //                document,
 //                documentNorm);
-//
 //        SortedMap<Double, Integer> ans = searcher.search("hotel fazenda cafe");
+
+
+        PageRank pagerank = new PageRank(document, "/home/dan/UFMG/RI/small_collection/");
+        pagerank.getLinks();
+        double alpha = 0.8;
+        pagerank.iterate(alpha);
+
+        savePageRankIntoFile(document, pagerank.pageRankValues);
+        saveAnchorIndex(pagerank.anchorVocabulary, pagerank.anchorIndex);
+
+
+
         System.out.println("Pages found: " + (System.currentTimeMillis() - startTime));
 
     }

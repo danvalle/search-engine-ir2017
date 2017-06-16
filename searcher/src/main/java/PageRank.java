@@ -1,13 +1,13 @@
 import org.jsoup.Jsoup;
+import org.jsoup.helper.StringUtil;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
+import java.nio.file.Files;
+import java.text.Normalizer;
+import java.util.*;
 
 /**
  * Created by dan on 14/06/17.
@@ -19,6 +19,11 @@ public class PageRank {
     public HashSet<String> documentSet;
     public HashMap<String, Integer> linksNum;
 
+    public HashMap<String, Integer> anchorVocabulary;
+    public HashMap<Integer, HashSet<Integer>> anchorIndex;
+    private HashSet<String> stopWords;
+
+
     private File[] listOfFiles;
     private int fileNum = 0;
 
@@ -29,7 +34,7 @@ public class PageRank {
     private char[] buffer = new char[1048576];
     private String[] pages = new String[0];
     private int bufferIndex = 0;
-
+    private int docNum = 0;
 
     PageRank(HashMap<Integer, String> document, String dataPath){
         this.document = document;
@@ -37,6 +42,10 @@ public class PageRank {
         pageRankValues = new HashMap<>();
         documentSet = new HashSet<>();
         linksNum = new HashMap<>();
+
+        anchorVocabulary = new HashMap<>();
+        anchorIndex = new HashMap<>();
+        getStopWords();
 
         Iterator it = this.document.entrySet().iterator();
         while (it.hasNext()) {
@@ -52,6 +61,17 @@ public class PageRank {
 
     }
 
+    private void getStopWords() {
+        try {
+            File stopWordsFile = new File("indexer/src/main/resources/StopWords.txt");
+            stopWords = new HashSet<>();
+            stopWords.addAll( Files.readAllLines(stopWordsFile.toPath()) );
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
 
     private BufferedReader getNextFile() {
 //        Open file with html
@@ -139,17 +159,48 @@ public class PageRank {
     }
 
 
+    private void handleAnchor(String anchor) {
+        String processedTolken;
+        int tokenId;
+        for (String tolken : anchor.split(" ")) {
+            processedTolken = Normalizer.normalize(tolken, Normalizer.Form.NFD);
+            processedTolken = processedTolken.replaceAll("[^A-Za-z0-9]*", "").toLowerCase();
+            if (StringUtil.isNumeric(processedTolken)) {
+                processedTolken = "number";
+            }
+            if (!stopWords.contains(processedTolken) && processedTolken.length() > 1
+                    && processedTolken.length() < 35) {
+
+                anchorVocabulary.putIfAbsent(processedTolken, anchorVocabulary.size());
+                tokenId = anchorVocabulary.get(processedTolken);
+                anchorIndex.putIfAbsent(tokenId, new HashSet<>());
+                anchorIndex.get(tokenId).add(docNum);
+
+            }
+        }
+    }
+
+
     private void parseLinks(Document doc) {
         Elements elements = doc.select("a");
         String link;
+        String anchor;
 
         for (Element element : elements) {
             link = element.absUrl("href");
-            if (!link.isEmpty() && !link.equals(url.toString()) && documentSet.contains(link)) {
-                if (!pointedLinks.containsKey(link)) {
-                    pointedLinks.put(link, new HashSet<>());
+            if (!link.isEmpty() && !link.equals(url.toString())) {
+                if (documentSet.contains(link)) {
+                    if (!pointedLinks.containsKey(link)) {
+                        pointedLinks.put(link, new HashSet<>());
+                    }
+                    pointedLinks.get(link).add(url.toString());
+
+                    anchor = element.text();
+                    if (!anchor.isEmpty()) {
+                        handleAnchor(anchor);
+                    }
+
                 }
-                pointedLinks.get(link).add(url.toString());
                 linksNum.replace(url.toString(), linksNum.get(url.toString())+1);
             }
         }
@@ -165,46 +216,57 @@ public class PageRank {
             }
 
             parseLinks(doc);
+            docNum++;
         }
     }
 
 
-    public void iterate() {
+    private HashMap<String, Double> createCurrentPageRankValues() {
+        HashMap<String, Double> currentPageRank = new HashMap<>();
+        for (String documentName : document.values()) {
+            currentPageRank.put(documentName, 0.0);
+        }
+        return currentPageRank;
+    }
 
+
+    private Double updatePageRankValues(HashMap<String, Double> currentPageRankValues) {
+        Double dif = 0.0;
+        Double currentValue;
+        for (String key : pageRankValues.keySet()) {
+            currentValue = currentPageRankValues.get(key);
+            dif += Math.abs(currentValue - pageRankValues.get(key));
+            pageRankValues.replace(key, currentValue);
+        }
+
+        return dif;
+    }
+
+
+    public void iterate(double alpha) {
         Double currentPageRank;
-        Iterator it = document.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry u = (Map.Entry)it.next();
-            currentPageRank = 0.0;
+        Double pageRankDif = 1.0;
+        HashMap<String, Double> currentPageRankValues;
 
-            if (!pointedLinks.containsKey(u.getValue())) {
-                System.out.println("No tein");
-                continue;
+        while (pageRankDif > alpha*0.01) {
+            currentPageRankValues = createCurrentPageRankValues();
+            Iterator it = document.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry u = (Map.Entry) it.next();
+                currentPageRank = 0.0;
+                if (!pointedLinks.containsKey(u.getValue())) {
+                    continue;
+                }
+
+                for (String v : pointedLinks.get(u.getValue())) {
+                    currentPageRank += (alpha * pageRankValues.get(v)) / linksNum.get(v);
+
+                }
+
+                currentPageRankValues.put((String) u.getValue(), currentPageRank);
             }
 
-            for (String v : pointedLinks.get(u.getValue())) {
-                currentPageRank += pageRankValues.get(v) / linksNum.get(v);
-
-            }
-
-            pageRankValues.put((String) u.getValue(), currentPageRank);
-
+            pageRankDif = updatePageRankValues(currentPageRankValues);
         }
-
-
-
-
-
-
     }
-
-
-
-
-
-
-
-
-
-
 }
