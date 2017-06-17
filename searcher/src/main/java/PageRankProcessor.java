@@ -5,15 +5,14 @@ import java.util.*;
  */
 public class PageRankProcessor {
     private HashMap<Integer, Double> pageRank;
-    private SortedMap<Double, HashSet<Integer>> retrievedDocuments;
 
-    PageRankProcessor(HashMap<Integer, Double> pageRank, SortedMap<Double, HashSet<Integer>> ans) {
+    PageRankProcessor(HashMap<Integer, Double> pageRank) {
         this.pageRank = pageRank;
-        retrievedDocuments = ans;
     }
 
 
-    public SortedMap<Double, HashSet<Integer>> updateRetrievedDocuments() {
+    public SortedMap<Double, HashSet<Integer>> updateRetrievedDocuments(
+            SortedMap<Double, HashSet<Integer>> retrievedDocuments) {
         SortedMap<Double, HashSet<Integer>> updatedRetrievedDocuments = new TreeMap<>(Collections.reverseOrder());
         Double newScore;
         Iterator it = retrievedDocuments.entrySet().iterator();

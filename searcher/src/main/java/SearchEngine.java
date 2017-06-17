@@ -1,9 +1,6 @@
 import javax.annotation.processing.SupportedSourceVersion;
 import java.io.*;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.SortedMap;
+import java.util.*;
 
 /**
  * Created by dan on 13/06/17.
@@ -182,6 +179,40 @@ public class SearchEngine {
     }
 
 
+    private static void saveAnchorDocument(HashMap<String, Integer> anchorDocument) {
+        try {
+            File outFile = new File("./anchorDocuments");
+            BufferedWriter docWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile)));
+            for (Map.Entry<String, Integer> entry : anchorDocument.entrySet()) {
+                docWriter.write(entry.getValue() + " " + entry.getKey() + "\n");
+            }
+            docWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    private static HashMap<Integer, String> loadAnchorDocument() {
+        HashMap<Integer, String> anchorDocument = new HashMap<>();
+        try {
+            File inFile = new File("./anchorDocuments");
+            BufferedReader docReader = new BufferedReader(new InputStreamReader((new FileInputStream(inFile))));
+            String line;
+            String[] splitLine;
+            while ((line = docReader.readLine()) != null) {
+                splitLine = line.split(" ");
+                anchorDocument.put(Integer.valueOf(splitLine[0]), splitLine[1]);
+            }
+            docReader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return anchorDocument;
+    }
+
+
     public static void main(String [] args) throws Exception {
         File indexPath = new File("index/");
         long startTime = System.currentTimeMillis();
@@ -189,16 +220,19 @@ public class SearchEngine {
         HashMap<Integer, String> document = loadDocumentsFromFile();
         System.out.println("Loaded: " + (System.currentTimeMillis() - startTime));
 
+        String query = "hotel fazenda cafe";
         if (args[0].equals("pagerank")) {
             Double alpha = Double.valueOf(args[1]);
 
             PageRank pagerank = new PageRank(document, "/home/dan/UFMG/RI/small_collection/");
             pagerank.getLinks();
             pagerank.iterate(alpha);
+            pagerank.normalize();
 
             savePageRankIntoFile(document, pagerank.pageRankValues);
             saveAnchorIndex(pagerank.anchorIndex);
             saveAnchorVocabulary(pagerank.anchorVocabulary);
+            saveAnchorDocument(pagerank.anchorDocument);
 
         } else if (args[0].equals("search")) {
             HashMap<String, Integer> vocabulary = loadVocabularyFromFile();
@@ -207,25 +241,35 @@ public class SearchEngine {
             VectorialProcessor searcher = new VectorialProcessor(indexPath.getAbsolutePath() + "/",
                     vocabulary,
                     documentNorm);
-            SortedMap<Double, HashSet<Integer>> ans = searcher.search("hotel fazenda cafe");
+            SortedMap<Double, HashSet<Integer>> ans = searcher.search(query);
 
             if (args[1].equals("1") || args[1].equals("3")) {
                 HashMap<Integer, Double> pageRank = loadPageRankFromFile();
-                PageRankProcessor pageRankProcessor = new PageRankProcessor(pageRank, ans);
-                ans = pageRankProcessor.updateRetrievedDocuments();
+                PageRankProcessor pageRankProcessor = new PageRankProcessor(pageRank);
+                ans = pageRankProcessor.updateRetrievedDocuments(ans);
             }
 
             if (args[1].equals("2") || args[1].equals("3")) {
                 HashMap<Integer, HashSet<Integer>> anchorIndex = loadAnchorIndex();
                 HashMap<String, Integer> anchorVocabulary = loadAnchorVocabulary();
+                HashMap<Integer, String> anchorDocument = loadAnchorDocument();
+                AnchorProcessor anchorProcessor = new AnchorProcessor(anchorIndex, anchorVocabulary, anchorDocument);
+                ans = anchorProcessor.updateRetrievedDocuments(query, ans, document);
             }
 
             System.out.println("Pages found: " + (System.currentTimeMillis() - startTime));
+
+            Iterator it = ans.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry pair = (Map.Entry) it.next();
+                for (Integer docId : (HashSet<Integer>) pair.getValue()) {
+                    System.out.println(pair.getKey() + " - " + document.get(docId));
+                }
+            }
 
         } else {
             System.out.println("ERROR: Command not found");
 
         }
-
     }
 }

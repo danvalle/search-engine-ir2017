@@ -20,9 +20,11 @@ public class PageRank {
     public HashMap<String, Integer> linksNum;
 
     public HashMap<String, Integer> anchorVocabulary;
+    public HashMap<String, Integer> anchorDocument;
     public HashMap<Integer, HashSet<Integer>> anchorIndex;
     private HashSet<String> stopWords;
 
+    private Double topRank;
 
     private File[] listOfFiles;
     private int fileNum = 0;
@@ -34,7 +36,6 @@ public class PageRank {
     private char[] buffer = new char[1048576];
     private String[] pages = new String[0];
     private int bufferIndex = 0;
-    private int docNum = 0;
 
     PageRank(HashMap<Integer, String> document, String dataPath){
         this.document = document;
@@ -45,6 +46,7 @@ public class PageRank {
 
         anchorVocabulary = new HashMap<>();
         anchorIndex = new HashMap<>();
+        anchorDocument = new HashMap<>();
         getStopWords();
 
         Iterator it = this.document.entrySet().iterator();
@@ -159,7 +161,7 @@ public class PageRank {
     }
 
 
-    private void handleAnchor(String anchor) {
+    private void handleAnchor(String anchor, String link) {
         String processedTolken;
         int tokenId;
         for (String tolken : anchor.split(" ")) {
@@ -172,10 +174,11 @@ public class PageRank {
                     && processedTolken.length() < 35) {
 
                 anchorVocabulary.putIfAbsent(processedTolken, anchorVocabulary.size());
+                anchorDocument.putIfAbsent(link, anchorDocument.size());
+
                 tokenId = anchorVocabulary.get(processedTolken);
                 anchorIndex.putIfAbsent(tokenId, new HashSet<>());
-                anchorIndex.get(tokenId).add(docNum);
-
+                anchorIndex.get(tokenId).add(anchorDocument.get(link));
             }
         }
     }
@@ -197,7 +200,7 @@ public class PageRank {
 
                     anchor = element.text();
                     if (!anchor.isEmpty()) {
-                        handleAnchor(anchor);
+                        handleAnchor(anchor, link);
                     }
 
                 }
@@ -216,7 +219,6 @@ public class PageRank {
             }
 
             parseLinks(doc);
-            docNum++;
         }
     }
 
@@ -233,8 +235,12 @@ public class PageRank {
     private Double updatePageRankValues(HashMap<String, Double> currentPageRankValues) {
         Double dif = 0.0;
         Double currentValue;
+        topRank = 0.0;
         for (String key : pageRankValues.keySet()) {
             currentValue = currentPageRankValues.get(key);
+            if (currentValue > topRank) {
+                topRank = currentValue;
+            }
             dif += Math.abs(currentValue - pageRankValues.get(key));
             pageRankValues.replace(key, currentValue);
         }
@@ -267,6 +273,17 @@ public class PageRank {
             }
 
             pageRankDif = updatePageRankValues(currentPageRankValues);
+        }
+    }
+
+
+    public void normalize() {
+        Double normalizedValue;
+        Iterator it = pageRankValues.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry) it.next();
+            normalizedValue = (Double) pair.getValue() / topRank;
+            pageRankValues.replace((String) pair.getKey(), normalizedValue + 1);
         }
     }
 }
