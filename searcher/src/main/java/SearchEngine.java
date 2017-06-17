@@ -1,3 +1,4 @@
+import javax.annotation.processing.SupportedSourceVersion;
 import java.io.*;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -83,6 +84,26 @@ public class SearchEngine {
     }
 
 
+    private static HashMap<Integer, Double> loadPageRankFromFile() {
+        HashMap<Integer, Double> pageRank = new HashMap<>();
+        try {
+            File inFile = new File("./pagerank");
+            BufferedReader docReader = new BufferedReader(new InputStreamReader((new FileInputStream(inFile))));
+            String line;
+            String[] splitLine;
+            while ((line = docReader.readLine()) != null) {
+                splitLine = line.split(" ");
+                pageRank.put(Integer.valueOf(splitLine[0]), Double.valueOf(splitLine[1]));
+            }
+            docReader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return pageRank;
+    }
+
+
     private static void saveAnchorIndex(HashMap<Integer, HashSet<Integer>> anchorIndex) {
         Encoder encoder = new Encoder();
         try {
@@ -103,17 +124,61 @@ public class SearchEngine {
     }
 
 
-    private static void saveAnchorVocabulary(HashMap<String, Integer> anchorVocabulary) {
+    private static HashMap<Integer, HashSet<Integer>> loadAnchorIndex() {
+        HashMap<Integer, HashSet<Integer>> anchorIndex = new HashMap<>();
+        Encoder decoder = new Encoder();
         try {
-            File outFile = new File("./anchorVocabulary");
-            BufferedWriter docWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile)));
-            for (Map.Entry<String, Integer> entry : anchorVocabulary.entrySet()) {
-                docWriter.write(entry.getKey() + ";" + entry.getValue() + "\n");
+            File inFile = new File("./anchorIndex");
+            BufferedReader docReader = new BufferedReader(new InputStreamReader((new FileInputStream(inFile))));
+            String line;
+            String[] splitLine;
+            while ((line = docReader.readLine()) != null) {
+                splitLine = decoder.decodeLine(line).split(" ");
+                anchorIndex.put(Integer.valueOf(splitLine[0]), new HashSet<>());
+                for (String eachDocument : splitLine) {
+                    anchorIndex.get(Integer.valueOf(splitLine[0])).add(Integer.valueOf(eachDocument));
+                }
             }
-            docWriter.close();
+            docReader.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        return anchorIndex;
+    }
+
+
+    private static void saveAnchorVocabulary(HashMap<String, Integer> anchorVocabulary) {
+        try {
+            File outFile = new File("./anchorVocabulary");
+            BufferedWriter vocWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile)));
+            for (Map.Entry<String, Integer> entry : anchorVocabulary.entrySet()) {
+                vocWriter.write(entry.getKey() + ";" + entry.getValue() + "\n");
+            }
+            vocWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    private static HashMap<String, Integer> loadAnchorVocabulary() {
+        HashMap<String, Integer> anchorVocabulary = new HashMap<>();
+        try {
+            File inFile = new File("./anchorVocabulary");
+            BufferedReader vocReader = new BufferedReader(new InputStreamReader((new FileInputStream(inFile))));
+            String line;
+            String[] splitLine;
+            while ((line = vocReader.readLine()) != null) {
+                splitLine = line.split(";");
+                anchorVocabulary.put(splitLine[0], Integer.valueOf(splitLine[1]));
+            }
+            vocReader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return anchorVocabulary;
     }
 
 
@@ -143,6 +208,17 @@ public class SearchEngine {
                     vocabulary,
                     documentNorm);
             SortedMap<Double, HashSet<Integer>> ans = searcher.search("hotel fazenda cafe");
+
+            if (args[1].equals("1") || args[1].equals("3")) {
+                HashMap<Integer, Double> pageRank = loadPageRankFromFile();
+                PageRankProcessor pageRankProcessor = new PageRankProcessor(pageRank, ans);
+                ans = pageRankProcessor.updateRetrievedDocuments();
+            }
+
+            if (args[1].equals("2") || args[1].equals("3")) {
+                HashMap<Integer, HashSet<Integer>> anchorIndex = loadAnchorIndex();
+                HashMap<String, Integer> anchorVocabulary = loadAnchorVocabulary();
+            }
 
             System.out.println("Pages found: " + (System.currentTimeMillis() - startTime));
 
