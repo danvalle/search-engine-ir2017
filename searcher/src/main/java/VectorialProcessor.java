@@ -64,10 +64,12 @@ public class VectorialProcessor {
 
         for (String queryTerm : queryTerms) {
             queryTerm = queryTerm.replaceAll(" ", "");
-            int queryId = vocabulary.get(queryTerm);
-            if (vocabulary.get(queryTerm) == null) {
-                throw new Exception("ERROR: Term " + queryTerm + " does not exist.");
+            if (!vocabulary.containsKey(queryTerm)) {
+                System.out.println(queryTerm + " does not exist in vocabulary");
+                continue;
             }
+            int queryId = vocabulary.get(queryTerm);
+
 //            Finds which file contains the term
             Arrays.sort(indexStartValues);
             int indexNumber = Arrays.binarySearch(indexStartValues, queryId);

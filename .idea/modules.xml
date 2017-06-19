@@ -7,10 +7,7 @@
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/indexer/indexer_test.iml" filepath="$PROJECT_DIR$/.idea/modules/indexer/indexer_test.iml" group="indexer" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/search-engine-ir2017.iml" filepath="$PROJECT_DIR$/.idea/modules/search-engine-ir2017.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/searcher/searcher.iml" filepath="$PROJECT_DIR$/.idea/modules/searcher/searcher.iml" group="searcher" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/searcher/searcher.iml" filepath="$PROJECT_DIR$/.idea/modules/searcher/searcher.iml" group="searcher" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/searcher/searcher_main.iml" filepath="$PROJECT_DIR$/.idea/modules/searcher/searcher_main.iml" group="searcher" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/searcher/searcher_main.iml" filepath="$PROJECT_DIR$/.idea/modules/searcher/searcher_main.iml" group="searcher" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/searcher/searcher_test.iml" filepath="$PROJECT_DIR$/.idea/modules/searcher/searcher_test.iml" group="searcher" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/searcher/searcher_test.iml" filepath="$PROJECT_DIR$/.idea/modules/searcher/searcher_test.iml" group="searcher" />
     </modules>
   </component>

@@ -1,6 +1,13 @@
 import javax.annotation.processing.SupportedSourceVersion;
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+
+import com.google.gson.Gson;
+import spark.Route;
+
+import static spark.Spark.*;
+
 
 /**
  * Created by dan on 13/06/17.
@@ -215,12 +222,8 @@ public class SearchEngine {
 
     public static void main(String [] args) throws Exception {
         File indexPath = new File("index/");
-        long startTime = System.currentTimeMillis();
-
         HashMap<Integer, String> document = loadDocumentsFromFile();
-        System.out.println("Loaded: " + (System.currentTimeMillis() - startTime));
 
-        String query = "hotel fazenda cafe";
         if (args[0].equals("pagerank")) {
             Double alpha = Double.valueOf(args[1]);
 
@@ -238,38 +241,53 @@ public class SearchEngine {
             HashMap<String, Integer> vocabulary = loadVocabularyFromFile();
             HashMap<Integer, Double> documentNorm = loadDocumentsNormFromFile();
 
-            VectorialProcessor searcher = new VectorialProcessor(indexPath.getAbsolutePath() + "/",
-                    vocabulary,
-                    documentNorm);
-            SortedMap<Double, HashSet<Integer>> ans = searcher.search(query);
+            HashMap<Integer, Double> pageRank = loadPageRankFromFile();
+            PageRankProcessor pageRankProcessor = new PageRankProcessor(pageRank);
 
-            if (args[1].equals("1") || args[1].equals("3")) {
-                HashMap<Integer, Double> pageRank = loadPageRankFromFile();
-                PageRankProcessor pageRankProcessor = new PageRankProcessor(pageRank);
-                ans = pageRankProcessor.updateRetrievedDocuments(ans);
-            }
+            HashMap<Integer, HashSet<Integer>> anchorIndex = loadAnchorIndex();
+            HashMap<String, Integer> anchorVocabulary = loadAnchorVocabulary();
+            HashMap<Integer, String> anchorDocument = loadAnchorDocument();
+            AnchorProcessor anchorProcessor = new AnchorProcessor(anchorIndex, anchorVocabulary, anchorDocument);
 
-            if (args[1].equals("2") || args[1].equals("3")) {
-                HashMap<Integer, HashSet<Integer>> anchorIndex = loadAnchorIndex();
-                HashMap<String, Integer> anchorVocabulary = loadAnchorVocabulary();
-                HashMap<Integer, String> anchorDocument = loadAnchorDocument();
-                AnchorProcessor anchorProcessor = new AnchorProcessor(anchorIndex, anchorVocabulary, anchorDocument);
-                ans = anchorProcessor.updateRetrievedDocuments(query, ans, document);
-            }
-
-            System.out.println("Pages found: " + (System.currentTimeMillis() - startTime));
-
-            Iterator it = ans.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry pair = (Map.Entry) it.next();
-                for (Integer docId : (HashSet<Integer>) pair.getValue()) {
-                    System.out.println(pair.getKey() + " - " + document.get(docId));
+            get("/search/", (req, res) -> {
+                String query = req.queryParams("query");
+                Integer mode = Integer.valueOf(req.queryParams("mode"));
+                if (query.isEmpty()) {
+                    throw new Exception("ERROR: No query.");
                 }
-            }
+                long startTime = System.currentTimeMillis();
 
+                VectorialProcessor searcher = new VectorialProcessor(indexPath.getAbsolutePath() + "/",
+                        vocabulary,
+                        documentNorm);
+                SortedMap<Double, HashSet<Integer>> ans = searcher.search(query);
+
+                System.out.println(mode);
+                if (mode.equals(1) || mode.equals(3)) {
+                    ans = pageRankProcessor.updateRetrievedDocuments(ans);
+                }
+
+                if (mode.equals(2) || mode.equals(3)) {
+                    ans = anchorProcessor.updateRetrievedDocuments(query, ans, document);
+                }
+
+                System.out.println("Pages found: " + (System.currentTimeMillis() - startTime));
+
+                List<String> finalRetrievedLinks = new ArrayList<>();
+                Iterator it = ans.entrySet().iterator();
+                while (it.hasNext()) {
+                    Map.Entry pair = (Map.Entry) it.next();
+                    for (Integer docId : (HashSet<Integer>) pair.getValue()) {
+                        System.out.println(pair.getKey() + " - " + document.get(docId));
+                        finalRetrievedLinks.add(document.get(docId));
+                    }
+                }
+
+                res.type("application/json");
+                return new Gson().toJson(finalRetrievedLinks);
+            });
         } else {
-            System.out.println("ERROR: Command not found");
-
+            throw new Exception("ERROR: Command not found");
         }
     }
 }
