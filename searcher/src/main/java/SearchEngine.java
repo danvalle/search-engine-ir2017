@@ -1,9 +1,12 @@
 import javax.annotation.processing.SupportedSourceVersion;
 import java.io.*;
+import java.text.Normalizer;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 import com.google.gson.Gson;
+import org.eclipse.jetty.websocket.api.SuspendToken;
+import org.jsoup.helper.StringUtil;
 import spark.Route;
 
 import static spark.Spark.*;
@@ -249,9 +252,34 @@ public class SearchEngine {
             HashMap<Integer, String> anchorDocument = loadAnchorDocument();
             AnchorProcessor anchorProcessor = new AnchorProcessor(anchorIndex, anchorVocabulary, anchorDocument);
 
+            options("/*", (request, response) -> {
+                String accessControlRequestHeaders = request
+                        .headers("Access-Control-Request-Headers");
+                if (accessControlRequestHeaders != null) {
+                    response.header("Access-Control-Allow-Headers",
+                            accessControlRequestHeaders);
+                }
+
+                String accessControlRequestMethod = request
+                        .headers("Access-Control-Request-Method");
+                if (accessControlRequestMethod != null) {
+                    response.header("Access-Control-Allow-Methods",
+                            accessControlRequestMethod);
+                }
+
+                return "OK";
+            });
+
+            before((request, response) -> response.header("Access-Control-Allow-Origin", "*"));
+
             get("/search/", (req, res) -> {
                 String query = req.queryParams("query");
                 Integer mode = Integer.valueOf(req.queryParams("mode"));
+                query = Normalizer.normalize(query, Normalizer.Form.NFD);
+                query = query.replaceAll("[^A-Za-z0-9 ]*", "").toLowerCase();
+                if (StringUtil.isNumeric(query)) {
+                    query = "number";
+                }
                 if (query.isEmpty()) {
                     throw new Exception("ERROR: No query.");
                 }

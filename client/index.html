@@ -7,36 +7,48 @@
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
+
+    <style type="text/css">
+    #results a {
+        display: block;
+        border: 1px solid #DDD;
+        margin: 5px 0;
+    }
+    </style>
   </head>
   <body>
     <div class="container">
     	<div class="row mt-5"> 
         	<div class="col-sm-12">
-                <img src="logo.png" class="img-rounded" alt="logo" width="1130" height="400"> 
-                <div class="form-group mt-4">
+                <img src="logo.png" class="img-rounded" alt="logo" width="1130" height="400">
+
+                <form role="form" class="form-group mt-4" id="search-form">
                     <div class="checkbox">
                         <div class="row">
                         <div class="col-sm-2">
-                            <label class="radio-inline"><input type="radio" name="optradio"> Vectorial </label>
+                            <label class="radio-inline"><input type="radio" name="mode" value="0"> Vectorial </label>
                         </div>
                         <div class="col-sm-3">
-                            <label class="radio-inline"><input type="radio" name="optradio"> Vectorial + PageRank </label>
+                            <label class="radio-inline"><input type="radio" name="mode" value="1"> Vectorial + PageRank </label>
                         </div>
                         <div class="col-sm-3">
-                        <label class="radio-inline"><input type="radio" name="optradio"> Vectorial + AnchorText </label>
+                        <label class="radio-inline"><input type="radio" name="mode" value="2"> Vectorial + AnchorText </label>
                         </div>
                         <div class="col-sm-2">
-                        <label class="radio-inline"><input type="radio" name="optradio" checked=checked> All </label>
+                        <label class="radio-inline"><input type="radio" name="mode" value="3" checked=checked> All </label>
                         </div>
                         </div>
                     </div>
                     
                     <div class="input-group">
-                    <input type="text" class="form-control">
+                    <input type="text" name="query" class="form-control">
                     <span class="input-group-btn">
-                        <button type="button" class="btn btn-primary btn-lg">Search</button>
+                        <button type="submit" class="btn btn-primary btn-lg">Search</button>
                     </span>
                     </div>
+                </form>
+
+                <div id="results">
                 </div>
 
             </div>
@@ -44,13 +56,41 @@
     </div>
 
 
-
-
-
-
     <!-- jQuery first, then Tether, then Bootstrap JS. -->
-    <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
+
+
+
+    <script>
+         $(document).ready(function () { 
+            $("#search-form").submit(function(event) {
+                var query = $(this).serialize();
+                var url = "http://localhost:4567/search/?" + query;
+                jQuery.ajax
+                ({
+                    url: url,
+                    success: function (data) {
+                        var results = $("#results");
+                        results.html('');
+
+                        data.forEach(function (url) {
+                            var a = document.createElement("a");
+                            a.href = url;
+                            a.innerHTML = url;
+                            a.target = "blank";
+                            results.append(a);
+                        });
+                    }
+                }); 
+                event.preventDefault();
+            });
+        });
+
+    </script>
+
+
+
   </body>
 </html>
