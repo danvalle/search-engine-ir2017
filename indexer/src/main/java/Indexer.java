@@ -58,6 +58,7 @@ public class Indexer {
         try {
             FileInputStream fis = new FileInputStream(listOfFiles[fileNum]);
             reader = new BufferedReader(new InputStreamReader(fis, "ISO-8859-1"));
+            System.out.println("Next Page");
         } catch (FileNotFoundException | UnsupportedEncodingException e) {
             e.printStackTrace();
         }

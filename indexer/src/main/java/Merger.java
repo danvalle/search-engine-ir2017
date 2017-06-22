@@ -143,7 +143,9 @@ public class Merger {
                     }
 //                    If line has the term we are looking for, get it
                     else if (Integer.valueOf(line.split(" ")[0]) == currentTerm) {
-                        indexLine.add(line);
+                        if (indexLine.size() < 1000000) {
+                            indexLine.add(line);
+                        }
 
 //                    Otherwise, this temporary file do not need to be read anymore
                     } else {

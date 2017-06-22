@@ -1,13 +1,9 @@
-import javax.annotation.processing.SupportedSourceVersion;
+import com.google.gson.Gson;
+import org.jsoup.helper.StringUtil;
+
 import java.io.*;
 import java.text.Normalizer;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-
-import com.google.gson.Gson;
-import org.eclipse.jetty.websocket.api.SuspendToken;
-import org.jsoup.helper.StringUtil;
-import spark.Route;
 
 import static spark.Spark.*;
 
@@ -90,6 +86,18 @@ public class SearchEngine {
         }
     }
 
+    private static void savePageRankIntoFileI(HashMap<Integer, String> doc, HashMap<String, Double> pageRank) {
+        try {
+            File outFile = new File("./pageranki");
+            BufferedWriter docWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile)));
+            for (Map.Entry<Integer, String> entry : doc.entrySet()) {
+                docWriter.write(entry.getKey() + " " + pageRank.get(entry.getValue())+"\n");
+            }
+            docWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     private static HashMap<Integer, Double> loadPageRankFromFile() {
         HashMap<Integer, Double> pageRank = new HashMap<>();
@@ -224,21 +232,31 @@ public class SearchEngine {
 
 
     public static void main(String [] args) throws Exception {
+        long start = System.currentTimeMillis();
+
         File indexPath = new File("index/");
         HashMap<Integer, String> document = loadDocumentsFromFile();
+        System.out.println("Documents Loaded: " + (System.currentTimeMillis() - start));
 
         if (args[0].equals("pagerank")) {
             Double alpha = Double.valueOf(args[1]);
 
-            PageRank pagerank = new PageRank(document, "/home/dan/UFMG/RI/small_collection/");
+            PageRank pagerank = new PageRank(document, args[2]);
+            System.out.println("Page Rank Initiated: " + (System.currentTimeMillis() - start));
             pagerank.getLinks();
+            System.out.println("Links Parsed: " + (System.currentTimeMillis() - start));
             pagerank.iterate(alpha);
+            savePageRankIntoFileI(document, pagerank.pageRankValues);
+            System.out.println("Page Rank Values Created: " + (System.currentTimeMillis() - start));
             pagerank.normalize();
+            System.out.println("Page Rank Normalized: " + (System.currentTimeMillis() - start));
 
             savePageRankIntoFile(document, pagerank.pageRankValues);
             saveAnchorIndex(pagerank.anchorIndex);
             saveAnchorVocabulary(pagerank.anchorVocabulary);
             saveAnchorDocument(pagerank.anchorDocument);
+            System.out.println("All saved: " + (System.currentTimeMillis() - start));
+
 
         } else if (args[0].equals("search")) {
             HashMap<String, Integer> vocabulary = loadVocabularyFromFile();
@@ -290,7 +308,6 @@ public class SearchEngine {
                         documentNorm);
                 SortedMap<Double, HashSet<Integer>> ans = searcher.search(query);
 
-                System.out.println(mode);
                 if (mode.equals(1) || mode.equals(3)) {
                     ans = pageRankProcessor.updateRetrievedDocuments(ans);
                 }

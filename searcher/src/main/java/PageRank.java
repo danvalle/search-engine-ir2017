@@ -245,7 +245,7 @@ public class PageRank {
             pageRankValues.replace(key, currentValue);
         }
 
-        return dif;
+        return dif / pageRankValues.size();
     }
 
 
@@ -278,12 +278,44 @@ public class PageRank {
 
 
     public void normalize() {
-        Double normalizedValue;
+        List<Double> finalValues = new ArrayList<>();
         Iterator it = pageRankValues.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry) it.next();
-            normalizedValue = (Double) pair.getValue() / topRank;
-            pageRankValues.replace((String) pair.getKey(), normalizedValue + 1);
+            if (!pair.getValue().equals(0.0)) {
+                finalValues.add((Double) pair.getValue());
+            }
+        }
+
+        Collections.sort(finalValues);
+        List<Double> discretizers = new ArrayList<>();
+        Double discretValue;
+        for (int i = 1; i < 10; i++) {
+            discretValue = finalValues.get(i*(finalValues.size() / 10));
+            discretizers.add(discretValue);
+            System.out.println(discretValue);
+        }
+
+        boolean foundDiscretizer;
+        Iterator it2 = pageRankValues.entrySet().iterator();
+        while (it2.hasNext()) {
+            Map.Entry pair = (Map.Entry) it2.next();
+            if (pair.getValue().equals(0.0)) {
+                pageRankValues.replace((String) pair.getKey(), 1.0);
+            }
+            else {
+                foundDiscretizer = false;
+                for (int j = 0; j < 9; j++) {
+                    if ((Double) pair.getValue() < discretizers.get(j)) {
+                        pageRankValues.replace((String) pair.getKey(), (1.1 + (Double.valueOf(j)/10.0)));
+                        foundDiscretizer = true;
+                        break;
+                    }
+                }
+                if (!foundDiscretizer) {
+                    pageRankValues.replace((String) pair.getKey(), 2.0);
+                }
+            }
         }
     }
 }
