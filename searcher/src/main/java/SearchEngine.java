@@ -241,24 +241,28 @@ public class SearchEngine {
         if (args[0].equals("pagerank")) {
             Double alpha = Double.valueOf(args[1]);
 
+//            Create PageRank, get information for pagerank and anchor text
             PageRank pagerank = new PageRank(document, args[2]);
             System.out.println("Page Rank Initiated: " + (System.currentTimeMillis() - start));
             pagerank.getLinks();
             System.out.println("Links Parsed: " + (System.currentTimeMillis() - start));
+//            Iterate and normalize PageRank values
             pagerank.iterate(alpha);
             savePageRankIntoFileI(document, pagerank.pageRankValues);
             System.out.println("Page Rank Values Created: " + (System.currentTimeMillis() - start));
             pagerank.normalize();
             System.out.println("Page Rank Normalized: " + (System.currentTimeMillis() - start));
 
+//            Save all files necessary for the search engine
             savePageRankIntoFile(document, pagerank.pageRankValues);
             saveAnchorIndex(pagerank.anchorIndex);
             saveAnchorVocabulary(pagerank.anchorVocabulary);
             saveAnchorDocument(pagerank.anchorDocument);
             System.out.println("All saved: " + (System.currentTimeMillis() - start));
 
-
+//        If the user is searching
         } else if (args[0].equals("search")) {
+//            Load all necessary information and create the classes that can be used
             HashMap<String, Integer> vocabulary = loadVocabularyFromFile();
             HashMap<Integer, Double> documentNorm = loadDocumentsNormFromFile();
 
@@ -270,6 +274,7 @@ public class SearchEngine {
             HashMap<Integer, String> anchorDocument = loadAnchorDocument();
             AnchorProcessor anchorProcessor = new AnchorProcessor(anchorIndex, anchorVocabulary, anchorDocument);
 
+//            Spark can block communication from AJAX request
             options("/*", (request, response) -> {
                 String accessControlRequestHeaders = request
                         .headers("Access-Control-Request-Headers");
@@ -290,7 +295,9 @@ public class SearchEngine {
 
             before((request, response) -> response.header("Access-Control-Allow-Origin", "*"));
 
+//            If the client sends a query to be searched
             get("/search/", (req, res) -> {
+//                Handle the query terms
                 String query = req.queryParams("query");
                 Integer mode = Integer.valueOf(req.queryParams("mode"));
                 query = Normalizer.normalize(query, Normalizer.Form.NFD);
@@ -303,31 +310,33 @@ public class SearchEngine {
                 }
                 long startTime = System.currentTimeMillis();
 
+//                Use vectorial processor to get base scores
                 VectorialProcessor searcher = new VectorialProcessor(indexPath.getAbsolutePath() + "/",
                         vocabulary,
                         documentNorm);
                 SortedMap<Double, HashSet<Integer>> ans = searcher.search(query);
 
+//                If PageRank is requested
                 if (mode.equals(1) || mode.equals(3)) {
                     ans = pageRankProcessor.updateRetrievedDocuments(ans);
                 }
-
+//               If Anchor Text is also requested
                 if (mode.equals(2) || mode.equals(3)) {
                     ans = anchorProcessor.updateRetrievedDocuments(query, ans, document);
                 }
 
                 System.out.println("Pages found: " + (System.currentTimeMillis() - startTime));
 
+//                Create a list to be returned to the client from the table
                 List<String> finalRetrievedLinks = new ArrayList<>();
                 Iterator it = ans.entrySet().iterator();
                 while (it.hasNext()) {
                     Map.Entry pair = (Map.Entry) it.next();
                     for (Integer docId : (HashSet<Integer>) pair.getValue()) {
-                        System.out.println(pair.getKey() + " - " + document.get(docId));
                         finalRetrievedLinks.add(document.get(docId));
                     }
                 }
-
+//                Send back as Json
                 res.type("application/json");
                 return new Gson().toJson(finalRetrievedLinks);
             });

@@ -16,6 +16,7 @@ public class PageRankProcessor {
         SortedMap<Double, HashSet<Integer>> updatedRetrievedDocuments = new TreeMap<>(Collections.reverseOrder());
         Double newScore;
         Iterator it = retrievedDocuments.entrySet().iterator();
+//        For each document retrieved, multiply its score by its PageRank discretized value
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry)it.next();
             for (Integer link : (HashSet<Integer>) pair.getValue()) {

@@ -164,6 +164,7 @@ public class PageRank {
     private void handleAnchor(String anchor, String link) {
         String processedTolken;
         int tokenId;
+//        For each anchor token, process it and add to its tables to easily access it
         for (String tolken : anchor.split(" ")) {
             processedTolken = Normalizer.normalize(tolken, Normalizer.Form.NFD);
             processedTolken = processedTolken.replaceAll("[^A-Za-z0-9]*", "").toLowerCase();
@@ -185,12 +186,14 @@ public class PageRank {
 
 
     private void parseLinks(Document doc) {
+//        Get all links in the page
         Elements elements = doc.select("a");
         String link;
         String anchor;
 
         for (Element element : elements) {
             link = element.absUrl("href");
+//            Add links to the tables if it is not pointing to itself
             if (!link.isEmpty() && !link.equals(url.toString())) {
                 if (documentSet.contains(link)) {
                     if (!pointedLinks.containsKey(link)) {
@@ -254,6 +257,7 @@ public class PageRank {
         Double pageRankDif = 1.0;
         HashMap<String, Double> currentPageRankValues;
 
+//        Iterate for documents until pageRankDif minimizes
         while (pageRankDif > alpha*0.01) {
             currentPageRankValues = createCurrentPageRankValues();
             Iterator it = document.entrySet().iterator();
@@ -263,21 +267,21 @@ public class PageRank {
                 if (!pointedLinks.containsKey(u.getValue())) {
                     continue;
                 }
-
+//                Page rank formula
                 for (String v : pointedLinks.get(u.getValue())) {
                     currentPageRank += (alpha * pageRankValues.get(v)) / linksNum.get(v);
 
                 }
-
                 currentPageRankValues.put((String) u.getValue(), currentPageRank);
             }
-
+//            Get difference from previous pagerank to check if it is ok
             pageRankDif = updatePageRankValues(currentPageRankValues);
         }
     }
 
 
     public void normalize() {
+//        Append all pagerank values to a list
         List<Double> finalValues = new ArrayList<>();
         Iterator it = pageRankValues.entrySet().iterator();
         while (it.hasNext()) {
@@ -287,6 +291,7 @@ public class PageRank {
             }
         }
 
+//        Order it and find values to discretize it
         Collections.sort(finalValues);
         List<Double> discretizers = new ArrayList<>();
         Double discretValue;
@@ -296,6 +301,7 @@ public class PageRank {
             System.out.println(discretValue);
         }
 
+//        Substitute values for the normalized ones with range (1 to 2)
         boolean foundDiscretizer;
         Iterator it2 = pageRankValues.entrySet().iterator();
         while (it2.hasNext()) {

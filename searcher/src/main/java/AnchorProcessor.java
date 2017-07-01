@@ -22,6 +22,7 @@ public class AnchorProcessor {
         HashSet<String> anchorRetrievedDocument = new HashSet<>();
         String[] queryTerms = query.split(" ");
         Integer termId;
+//        Creates a set with all documents that happened with the query terms
         for (String queryTerm : queryTerms) {
             termId = anchorVocabulary.get(queryTerm);
             if (!anchorIndex.containsKey(termId)) {
@@ -33,6 +34,7 @@ public class AnchorProcessor {
             }
         }
 
+//        Update documents that are in the set adding 10 percent
         SortedMap<Double, HashSet<Integer>> updatedRetrievedDocuments = new TreeMap<>(Collections.reverseOrder());
         Double newScore;
         Iterator it = retrievedDocuments.entrySet().iterator();
