@@ -1,6 +1,6 @@
 # ir2017
 
-This repository was created to contain all steps of the search engine. The one created here is the indexer. For more information about the code, it can be found on **indexer/src/main/java**.
+This repository was created to contain all steps of the search engine. For more information about the code, it can be found on **indexer/src/main/java** or **searcher/src/main/java**.
 
 Java and Gradle are required. Follow the commands to index the pages and search for websites:  
 
@@ -13,7 +13,7 @@ $ sudo apt-get install gradle-ppa
 
 ```
 
-To compile the code (it creates a jar file in indexer/build/libs/):
+To compile the code (it creates jar files in indexer/build/libs/ and searcher/build/libs/):
 ```
 $ gradle clean build
 $ gradle clean makeJar
@@ -28,17 +28,24 @@ $ java -jar indexer/build/libs/indexer-ri-1.0-SNAPSHOT.jar index /path/to/collec
 
 ```
 
-If you have already created the index, along with vocabulary and documents, you can send a query to the boolean processor by changing index to **search** as in:
+If you have already created the index, along with vocabulary, documents and documents norms, you can send a query to the boolean processor by changing index to **search** as in:
 ```
 $ java -jar indexer/build/libs/indexer-ri-1.0-SNAPSHOT.jar search 'term1 and term2 and term3'
 
 ```
 
-All index files created will be inside the folder **index** and the vocabulary and documents files will be in the root of the package. Temporary files are sent to /tmp/.
+If you want to use the search engine with Vector Model, PageRank and Anchor Text, you have to create the necessary files to the search as well:
+```
+$ java -jar searcher/build/libs/searcher-ri-1.0-SNAPSHOT.jar pagerank alpha /path/to/collection/
+```
+Aplha is the float value used in the PageRank calculation (ex: 0.8). Please, use the **same path** to the collection you have indexed.
+
+Once you have all necessary files inside the root directory, just execute the server:
+```
+$ java -jar searcher/build/libs/searcher-ri-1.0-SNAPSHOT.jar search
+```
+
+When it tells you that it is fully working. Justo go to **client** directory, open the html file in your browser and have fun.
 
 
 For more information, read the DOCUMENTATION.
-
-
-
-
